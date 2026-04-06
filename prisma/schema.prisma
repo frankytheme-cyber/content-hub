@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Sito {
+  id            String    @id @default(cuid())
+  nome          String
+  dominio       String    @unique
+  istruzioni    String    // linee guida di scrittura per questo sito
+  categorie     String[]  // categorie specifiche del sito
+  wpSiteUrl     String?
+  wpUsername    String?
+  wpAppPassword String?
+  sessioni      Session[]
+}
+
+model Session {
+  id          String       @id @default(cuid())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  stato       StatoSession @default(IN_ATTESA)
+  sitoId      String?
+  sito        Sito?        @relation(fields: [sitoId], references: [id])
+  categoria   String
+  argomento   String
+  fonti       String[]
+  ricercaJson Json?
+  linkInterni LinkInterno[]
+  articoli    Articolo[]
+  jobs        Job[]
+}
+
+model LinkInterno {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  testo     String
+  url       String
+}
+
+model Articolo {
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+  sessionId      String
+  session        Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  slug           String        @unique
+  titolo         String
+  stato          StatoArticolo @default(BOZZA)
+  pubblicatoIl   DateTime?
+  wpPostId       Int?
+  versioneScelta String?
+  versioni       Versione[]
+}
+
+model Versione {
+  id                String   @id @default(cuid())
+  articoloId        String
+  articolo          Articolo @relation(fields: [articoloId], references: [id], onDelete: Cascade)
+  indice            Int
+  tono              String
+  corpo             String
+  noteRevisione     String?
+  seoJson           Json     @default("{}")
+  immagineUrl       String?
+  immagineCreditUrl String?
+  punteggio         Float?
+}
+
+model Job {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  sessionId    String
+  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  stato        StatoJob @default(IN_CODA)
+  fase         String?
+  errore       String?
+  completatoIl DateTime?
+}
+
+enum StatoSession {
+  IN_ATTESA
+  IN_CORSO
+  COMPLETATA
+  FALLITA
+}
+
+enum StatoArticolo {
+  BOZZA
+  REVISIONE
+  APPROVATO
+  PUBBLICATO
+}
+
+enum StatoJob {
+  IN_CODA
+  IN_ESECUZIONE
+  COMPLETATO
+  FALLITO
+}
