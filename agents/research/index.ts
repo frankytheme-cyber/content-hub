@@ -2,7 +2,10 @@ import { callClaudeJson } from '@/lib/claude-cli'
 import { tavilySearch, tavilyExtract } from './tavily-client'
 import type { ResearchInput, ResearchResult, ResearchSource } from '@/types/agents'
 
-export async function runResearchAgent(input: ResearchInput): Promise<ResearchResult> {
+export async function runResearchAgent(
+  input: ResearchInput,
+  onProgress?: (msg: string) => void
+): Promise<ResearchResult> {
   const { argomento, fonti, categoria } = input
 
   // 1. Ricerca principale su Tavily
@@ -26,7 +29,7 @@ export async function runResearchAgent(input: ResearchInput): Promise<ResearchRe
   const testi = fonti.filter((f) => !f.startsWith('http'))
 
   const fontiTavily = searchData.results
-    .map((r) => `Titolo: ${r.title}\nURL: ${r.url}\nContenuto: ${r.content}`)
+    .map((r) => `Titolo: ${r.title}\nURL: ${r.url}\nContenuto: ${r.content.slice(0, 1500)}`)
     .join('\n\n---\n\n')
 
   const prompt = `Sei un ricercatore esperto in content marketing per e-commerce.
@@ -50,6 +53,7 @@ Sulla base di queste fonti, produci un report strutturato in JSON con questi cam
 
 Restituisci SOLO il JSON, senza markdown o testo aggiuntivo.`
 
+  onProgress?.('Analisi contenuti con Claude...')
   const result = await callClaudeJson<ResearchResult>(prompt, { timeout: 5 * 60 * 1000 })
 
   // Aggiungi le fonti Tavily se non già presenti nel risultato

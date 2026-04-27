@@ -3,11 +3,17 @@ import { getRedis } from './redis'
 import type { WizardInput } from '@/types/agents'
 
 const QUEUE_NAME = 'pipeline'
+const LINK_QUEUE_NAME = 'internal-linking'
 
 export interface PipelineJobData {
   sessionId: string
   jobId: string
   input: WizardInput
+}
+
+export interface LinkAnalysisJobData {
+  jobId: string
+  sitoId: string
 }
 
 let queue: Queue | null = null
@@ -32,6 +38,12 @@ export async function enqueueJob(data: PipelineJobData) {
   })
 }
 
+// Usato per retry: non imposta jobId BullMQ per evitare conflitti con job falliti
+export async function reEnqueueJob(data: PipelineJobData) {
+  const q = await getQueue()
+  await q.add('run', data)
+}
+
 let worker: Worker | null = null
 
 export async function startWorker() {
@@ -47,6 +59,8 @@ export async function startWorker() {
     {
       connection,
       concurrency: 2,
+      lockDuration: 20 * 60 * 1000,
+      maxStalledCount: 1,
     }
   )
 
@@ -55,4 +69,52 @@ export async function startWorker() {
   })
 
   return worker
+}
+
+let linkQueue: Queue | null = null
+
+async function getLinkQueue(): Promise<Queue> {
+  if (linkQueue) return linkQueue
+  const connection = await getRedis()
+  linkQueue = new Queue(LINK_QUEUE_NAME, {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: 50,
+      removeOnFail: 50,
+    },
+  })
+  return linkQueue
+}
+
+export async function enqueueInternalLinkingJob(data: LinkAnalysisJobData) {
+  const q = await getLinkQueue()
+  // Non riusiamo data.jobId come BullMQ job ID per evitare conflitti al retry
+  await q.add('analyze', data)
+}
+
+let linkWorker: Worker | null = null
+
+export async function startInternalLinkingWorker() {
+  if (linkWorker) return linkWorker
+
+  const connection = await getRedis()
+  linkWorker = new Worker(
+    LINK_QUEUE_NAME,
+    async (job) => {
+      const { runInternalLinkingJob } = await import('@/agents/internal-linking')
+      await runInternalLinkingJob(job.data as LinkAnalysisJobData)
+    },
+    {
+      connection,
+      concurrency: 1,
+      lockDuration: 20 * 60 * 1000,   // 20 min: sufficiente per analisi grandi
+      maxStalledCount: 1,
+    }
+  )
+
+  linkWorker.on('failed', (job, err) => {
+    console.error(`[LinkWorker] Job ${job?.id} fallito:`, err.message)
+  })
+
+  return linkWorker
 }

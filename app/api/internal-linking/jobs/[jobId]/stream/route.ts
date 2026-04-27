@@ -3,18 +3,7 @@ import { createSubscriber } from '@/lib/redis'
 import { prisma } from '@/lib/prisma'
 
 function getChannelName(jobId: string) {
-  return `job:${jobId}`
-}
-
-const PROGRESSO_PER_FASE: Record<string, number> = {
-  ricerca: 20,
-  generazione: 50,
-  revisione: 68,
-  seo: 83,
-  immagini: 93,
-  salvataggio: 95,
-  completato: 100,
-  errore: 0,
+  return `link-job:${jobId}`
 }
 
 export async function GET(
@@ -33,30 +22,22 @@ export async function GET(
         } catch { /* stream già chiuso */ }
       }
 
-      // Invia subito lo stato attuale del job (catch-up)
-      const job = await prisma.job.findUnique({ where: { id: jobId } })
+      const job = await prisma.linkAnalysisJob.findUnique({ where: { id: jobId } })
       if (job) {
-        const fase = job.fase ?? 'ricerca'
-        const progresso = PROGRESSO_PER_FASE[fase] ?? 0
-
-        if (job.stato === 'COMPLETATO') {
-          enqueue({ jobId, fase: 'completato', progresso: 100, messaggio: 'Articolo pronto.' })
+        enqueue({
+          jobId,
+          fase: job.fase,
+          progresso: job.progresso,
+          totalePost: job.totalePost,
+          postProcessati: job.postProcessati,
+          messaggio: job.stato === 'errore' ? job.errore ?? 'Errore' : `Stato: ${job.stato}`,
+        })
+        if (job.stato === 'completato' || job.stato === 'errore') {
           controller.close()
           return
-        }
-
-        if (job.stato === 'FALLITO') {
-          enqueue({ jobId, fase: 'errore', progresso: 0, messaggio: job.errore ?? 'Errore sconosciuto' })
-          controller.close()
-          return
-        }
-
-        if (job.stato === 'IN_ESECUZIONE' && fase) {
-          enqueue({ jobId, fase, progresso, messaggio: `In esecuzione: ${fase}` })
         }
       }
 
-      // Poi ascolta eventi futuri via Redis pub/sub
       subscriber = await createSubscriber()
       const channel = getChannelName(jobId)
 
@@ -72,9 +53,7 @@ export async function GET(
         } catch { /* ignora */ }
       })
 
-      subscriber.on('error', () => {
-        controller.close()
-      })
+      subscriber.on('error', () => controller.close())
 
       await subscriber.subscribe(channel)
 

@@ -6,6 +6,7 @@ import { runReviewAgent } from './review'
 import { runSeoAgent } from './seo'
 import { runImageAgent } from './image'
 import { runRecensioneAgent } from './recensione'
+import { runSistemaAgent } from './sistema'
 import type { PipelineJobData } from '@/lib/job-queue'
 import type { ArticoloBozza, ResearchResult, ReviewCorrezione, ReviewResult, SeoResult } from '@/types/agents'
 import slugify from 'slugify'
@@ -61,11 +62,16 @@ export async function runPipeline(data: PipelineJobData) {
       await prisma.job.update({ where: { id: jobId }, data: { fase: 'ricerca' } })
       await emit('ricerca', 5, 'Avvio ricerca materiale...')
 
-      ricerca = await runResearchAgent({
-        argomento: input.argomento,
-        fonti: input.fonti,
-        categoria: input.categoria,
-      })
+      await emit('ricerca', 8, 'Ricerca Tavily in corso...')
+
+      ricerca = await runResearchAgent(
+        {
+          argomento: input.argomento,
+          fonti: input.fonti,
+          categoria: input.categoria,
+        },
+        (msg) => emit('ricerca', 13, msg)
+      )
 
       await prisma.session.update({
         where: { id: sessionId },
@@ -76,6 +82,7 @@ export async function runPipeline(data: PipelineJobData) {
     }
 
     const isRecensione = input.tipoArticolo === 'recensione'
+    const isSistema = input.tipoArticolo === 'sistema'
 
     // ─── 2. Generazione ─────────────────────────────────────────────────────
     let versioni: ArticoloBozza[]
@@ -86,7 +93,7 @@ export async function runPipeline(data: PipelineJobData) {
       include: { articolo: true },
     })
 
-    const checkpointCount = isRecensione ? 1 : 2
+    const checkpointCount = isRecensione || isSistema ? 1 : 2
 
     if (versioniSalvate.length >= checkpointCount && !['ricerca', 'generazione'].includes(faseIniziale)) {
       versioni = versioniSalvate.map((v) => ({
@@ -111,6 +118,27 @@ export async function runPipeline(data: PipelineJobData) {
         versioni = [rec.versione]
         extraMeta = { schemaJsonLd: rec.versione.schemaJsonLd, tag: rec.versione.tag }
         await emit('generazione', 50, 'Recensione hi-fi generata.')
+      } else if (isSistema) {
+        const sito = input.sitoId
+          ? await prisma.sito.findUnique({ where: { id: input.sitoId } })
+          : null
+        if (!sito?.wpSiteUrl || !sito.wpUsername || !sito.wpAppPassword) {
+          throw new Error('Articolo sistema richiede credenziali WordPress configurate sul sito.')
+        }
+        const sis = await runSistemaAgent({
+          ricerca,
+          linkInterni: [],
+          argomento: input.argomento,
+          categoria: input.categoria,
+          sitoIstruzioni: input.sitoIstruzioni,
+          sistemaCategorie: input.sistemaCategorie ?? [],
+          siteUrl: sito.wpSiteUrl,
+          username: sito.wpUsername,
+          appPassword: sito.wpAppPassword,
+        })
+        versioni = [sis.versione]
+        extraMeta = { tag: sis.versione.tag }
+        await emit('generazione', 50, 'Articolo sistema hi-fi generato.')
       } else {
         const gen = await runGenerationAgent({
           ricerca,
@@ -139,7 +167,7 @@ export async function runPipeline(data: PipelineJobData) {
     let bozzePronto: ArticoloBozza[]
     let seoResults: SeoResult[]
 
-    if (isRecensione) {
+    if (isRecensione || isSistema) {
       bozzePronto = versioni.map((v, i) => ({
         ...v,
         corpo: applicaCorrezioni(v.corpo, revisioni[i].correzioni),
@@ -152,14 +180,14 @@ export async function runPipeline(data: PipelineJobData) {
           metaDescrizione: b.estratto,
           slug: slugify(b.titolo, { lower: true, strict: true, locale: 'it' }),
           keywordPrincipale: input.argomento,
-          keywordSecondarie: extraMeta.tag ?? [],
+          keywordSecondarie: extraMeta.tag ?? b.tag ?? [],
           geoHints: [],
           schemaMarkup: extraMeta.schemaJsonLd ?? {},
           ogTitolo: b.titolo,
           ogDescrizione: b.estratto,
         },
       }))
-      await emit('seo', 83, 'SEO recensione completato.')
+      await emit('seo', 83, isSistema ? 'SEO sistema completato.' : 'SEO recensione completato.')
     } else {
       await prisma.job.update({ where: { id: jobId }, data: { fase: 'seo' } })
       await emit('seo', 70, 'Ottimizzazione SEO e GEO...')

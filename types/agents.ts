@@ -3,8 +3,9 @@
 export interface WizardInput {
   sitoId?: string
   sitoIstruzioni?: string  // iniettato dalla pipeline, non dal client
-  tipoArticolo?: 'standard' | 'recensione'
+  tipoArticolo?: 'standard' | 'recensione' | 'sistema'
   linkAmazon?: string
+  sistemaCategorie?: string[]
   categoria: string
   argomento: string
   fonti: string[]
@@ -54,6 +55,7 @@ export interface ArticoloBozza {
   titolo: string
   corpo: string
   estratto: string
+  tag?: string[]
 }
 
 export interface GenerationResult {
@@ -155,4 +157,39 @@ export interface JobEvent {
   progresso: number
   messaggio: string
   dati?: unknown
+}
+
+// ─── Internal Linking ────────────────────────────────────────────────────────
+
+export interface WpPostSummary {
+  id: number
+  slug: string
+  link: string
+  titolo: string
+  estratto: string
+  contenuto: string
+}
+
+export interface LinkSuggestionDraft {
+  fontePostId: number
+  targetPostId: number
+  anchorText: string
+  contesto: string
+  motivazione: string
+}
+
+export type LinkAnalysisFase =
+  | 'in_coda'
+  | 'fetch'
+  | 'analisi'
+  | 'completato'
+  | 'errore'
+
+export interface LinkAnalysisEvent {
+  jobId: string
+  fase: LinkAnalysisFase
+  progresso: number
+  messaggio: string
+  totalePost?: number
+  postProcessati?: number
 }

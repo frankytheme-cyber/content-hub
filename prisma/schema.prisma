@@ -7,15 +7,16 @@ datasource db {
 }
 
 model Sito {
-  id            String    @id @default(cuid())
-  nome          String
-  dominio       String    @unique
-  istruzioni    String    // linee guida di scrittura per questo sito
-  categorie     String[]  // categorie specifiche del sito
-  wpSiteUrl     String?
-  wpUsername    String?
-  wpAppPassword String?
-  sessioni      Session[]
+  id              String            @id @default(cuid())
+  nome            String
+  dominio         String            @unique
+  istruzioni      String    // linee guida di scrittura per questo sito
+  categorie       String[]  // categorie specifiche del sito
+  wpSiteUrl       String?
+  wpUsername      String?
+  wpAppPassword   String?
+  sessioni        Session[]
+  linkAnalysisJobs LinkAnalysisJob[]
 }
 
 model Session {
@@ -100,4 +101,42 @@ enum StatoJob {
   IN_ESECUZIONE
   COMPLETATO
   FALLITO
+}
+
+model LinkAnalysisJob {
+  id             String           @id @default(cuid())
+  sitoId         String
+  sito           Sito             @relation(fields: [sitoId], references: [id], onDelete: Cascade)
+  stato          String           @default("in_coda") // in_coda | in_corso | completato | errore
+  fase           String           @default("in_coda") // in_coda | fetch | analisi | completato | errore
+  progresso      Int              @default(0)
+  totalePost     Int              @default(0)
+  postProcessati Int              @default(0)
+  errore         String?
+  suggestions    LinkSuggestion[]
+  creatoIl       DateTime         @default(now())
+  aggiornatoIl   DateTime         @updatedAt
+}
+
+model LinkSuggestion {
+  id           String          @id @default(cuid())
+  jobId        String
+  job          LinkAnalysisJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sitoId       String
+  fontePostId  Int
+  fonteTitolo  String
+  fonteUrl     String
+  targetPostId Int
+  targetTitolo String
+  targetUrl    String
+  anchorText   String
+  contesto     String
+  motivazione  String
+  stato        String          @default("pendente") // pendente | approvato | rifiutato | applicato | errore
+  appliedAt    DateTime?
+  errore       String?
+  creatoIl     DateTime        @default(now())
+
+  @@index([jobId])
+  @@index([sitoId])
 }

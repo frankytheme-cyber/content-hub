@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { enqueueJob, startWorker } from '@/lib/job-queue'
+import { reEnqueueJob, startWorker } from '@/lib/job-queue'
 import type { WizardInput } from '@/types/agents'
 
 const PROGRESSO_PER_FASE: Record<string, number> = {
@@ -70,7 +70,7 @@ export async function POST(
   }
 
   await startWorker()
-  await enqueueJob({ sessionId: job.sessionId, jobId, input })
+  await reEnqueueJob({ sessionId: job.sessionId, jobId, input })
 
   return NextResponse.json({ ok: true })
 }

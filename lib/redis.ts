@@ -16,6 +16,12 @@ function makeClient(url: string) {
   })
   client.on('error', (err) => {
     console.error(`[Redis] Errore:`, err.message)
+    // Se Upstash quota esaurita, invalida la cache così il prossimo getRedis() riproverà con locale
+    if (err.message?.includes('max requests limit exceeded') && globalForRedis.resolvedUrl !== LOCAL_URL) {
+      console.warn('[Redis] Quota Upstash esaurita, reset a locale al prossimo avvio.')
+      delete (globalForRedis as any).resolvedUrl
+      delete (globalForRedis as any).redis
+    }
   })
   return client
 }

@@ -11,8 +11,9 @@ const linkSchema = z.object({
 
 const wizardSchema = z.object({
   sitoId: z.string().optional(),
-  tipoArticolo: z.enum(['standard', 'recensione']).default('standard'),
+  tipoArticolo: z.enum(['standard', 'recensione', 'sistema']).default('standard'),
   linkAmazon: z.string().optional(),
+  sistemaCategorie: z.array(z.string()).default([]),
   categoria: z.string().min(1, 'Categoria obbligatoria'),
   argomento: z.string().min(3, 'Argomento troppo breve'),
   fonti: z.array(z.string()).default([]),
@@ -58,10 +59,10 @@ export async function POST(req: NextRequest) {
     await enqueueJob({
       sessionId: session.id,
       jobId: job.id,
-      input: { ...input, sitoId: resolvedSitoId ?? undefined, sitoIstruzioni },
+      input: { ...input, sitoId: resolvedSitoId ?? undefined, sitoIstruzioni, sistemaCategorie: input.sistemaCategorie },
     })
 
-    const response: WizardResponse = {
+    const response: WizardResponse = {  // sistemaCategorie propagato via input nell'enqueue
       jobId: job.id,
       sessionId: session.id,
     }

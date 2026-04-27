@@ -15,6 +15,7 @@ export interface WpCreatePostParams {
   excerpt?: string
   meta?: Record<string, string>
   featured_media?: number
+  tags?: number[]
 }
 
 export interface WpPostResult {
@@ -54,6 +55,7 @@ export class WordPressMcpClient {
     if (params.excerpt) body.excerpt = params.excerpt
     if (params.meta && Object.keys(params.meta).length > 0) body.meta = params.meta
     if (params.featured_media) body.featured_media = params.featured_media
+    if (params.tags && params.tags.length > 0) body.tags = params.tags
 
     const res = await fetch(`${this.baseUrl}/posts`, {
       method: 'POST',
@@ -71,6 +73,71 @@ export class WordPressMcpClient {
 
     const data = await res.json()
     return { id: data.id, link: data.link, status: data.status }
+  }
+
+  async listPosts(opts: { page: number; perPage?: number; status?: string } = { page: 1 }): Promise<{
+    posts: Array<{
+      id: number
+      slug: string
+      link: string
+      title: { rendered: string }
+      excerpt: { rendered: string }
+      content: { rendered: string }
+    }>
+    totalPages: number
+  }> {
+    if (!this.baseUrl) throw new Error('Client non connesso')
+    const perPage = opts.perPage ?? 100
+    const status = opts.status ?? 'publish'
+    const url = `${this.baseUrl}/posts?_fields=id,slug,link,title,excerpt,content&per_page=${perPage}&page=${opts.page}&status=${status}&orderby=date&order=desc`
+
+    const res = await fetch(url, {
+      headers: { Authorization: this.authHeader },
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`listPosts fallito: ${(err as any).message ?? res.status}`)
+    }
+
+    const totalPages = Number(res.headers.get('x-wp-totalpages') ?? '1')
+    const posts = (await res.json()) as Array<{
+      id: number
+      slug: string
+      link: string
+      title: { rendered: string }
+      excerpt: { rendered: string }
+      content: { rendered: string }
+    }>
+    return { posts, totalPages }
+  }
+
+  async getPost(id: number): Promise<{ id: number; link: string; content: { rendered: string; raw?: string } }> {
+    if (!this.baseUrl) throw new Error('Client non connesso')
+    const res = await fetch(`${this.baseUrl}/posts/${id}?context=edit&_fields=id,link,content`, {
+      headers: { Authorization: this.authHeader },
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`getPost fallito: ${(err as any).message ?? res.status}`)
+    }
+    return res.json() as Promise<{ id: number; link: string; content: { rendered: string; raw?: string } }>
+  }
+
+  async updatePostContent(id: number, content: string): Promise<void> {
+    if (!this.baseUrl) throw new Error('Client non connesso')
+    const res = await fetch(`${this.baseUrl}/posts/${id}`, {
+      method: 'POST',
+      headers: {
+        Authorization: this.authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`updatePostContent fallito: ${(err as any).message ?? res.status}`)
+    }
   }
 
   async uploadMediaFromUrl(imageUrl: string, title: string): Promise<number> {
@@ -107,6 +174,43 @@ export class WordPressMcpClient {
 
     const data = await res.json()
     return data.id as number
+  }
+
+  async getOrCreateTag(name: string): Promise<number> {
+    if (!this.baseUrl) throw new Error('Client non connesso')
+    const searchRes = await fetch(
+      `${this.baseUrl}/tags?search=${encodeURIComponent(name)}&_fields=id,name&per_page=5`,
+      { headers: { Authorization: this.authHeader } }
+    )
+    if (searchRes.ok) {
+      const found = (await searchRes.json()) as Array<{ id: number; name: string }>
+      const exact = found.find((t) => t.name.toLowerCase() === name.toLowerCase())
+      if (exact) return exact.id
+    }
+
+    const createRes = await fetch(`${this.baseUrl}/tags`, {
+      method: 'POST',
+      headers: { Authorization: this.authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({}))
+      throw new Error(`Creazione tag "${name}" fallita: ${(err as any).message ?? createRes.status}`)
+    }
+    const created = (await createRes.json()) as { id: number }
+    return created.id
+  }
+
+  async resolveTagIds(tagNames: string[]): Promise<number[]> {
+    const ids: number[] = []
+    for (const name of tagNames) {
+      try {
+        ids.push(await this.getOrCreateTag(name))
+      } catch (e) {
+        console.warn(`[publisher] tag "${name}" ignorato:`, e)
+      }
+    }
+    return ids
   }
 
   async disconnect() {

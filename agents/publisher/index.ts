@@ -99,6 +99,13 @@ export async function runPublisherAgent(input: PublishInput): Promise<PublishRes
       }
     }
 
+    // Risolve tag (da keywordSecondarie del SEO o da tag dedicati)
+    let tagIds: number[] = []
+    const seoKeywords: string[] = seo?.keywordSecondarie ?? []
+    if (seoKeywords.length > 0) {
+      tagIds = await wpClient.resolveTagIds(seoKeywords.slice(0, 6))
+    }
+
     const result = await wpClient.createPost({
       title: articolo.titolo,
       content: htmlContent,
@@ -106,6 +113,7 @@ export async function runPublisherAgent(input: PublishInput): Promise<PublishRes
       slug: seo?.slug ?? articolo.slug,
       excerpt: seo?.metaDescrizione ?? '',
       featured_media: featuredMediaId,
+      tags: tagIds,
     })
 
     const pubblicatoIl = new Date().toISOString()

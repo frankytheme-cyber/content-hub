@@ -15,34 +15,48 @@ export async function tavilySearch(
   query: string,
   maxResults = 8
 ): Promise<TavilySearchResponse> {
-  const res = await fetch(`${BASE_URL}/search`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      api_key: getApiKey(),
-      query,
-      search_depth: 'advanced',
-      max_results: maxResults,
-      include_answer: true,
-    }),
-  })
-  if (!res.ok) {
-    throw new Error(`Tavily search fallita: ${res.status} ${await res.text()}`)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 30_000)
+  try {
+    const res = await fetch(`${BASE_URL}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        api_key: getApiKey(),
+        query,
+        search_depth: 'advanced',
+        max_results: maxResults,
+        include_answer: true,
+      }),
+    })
+    if (!res.ok) {
+      throw new Error(`Tavily search fallita: ${res.status} ${await res.text()}`)
+    }
+    return res.json()
+  } finally {
+    clearTimeout(timer)
   }
-  return res.json()
 }
 
 export async function tavilyExtract(urls: string[]): Promise<TavilyExtractResponse> {
-  const res = await fetch(`${BASE_URL}/extract`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      api_key: getApiKey(),
-      urls,
-    }),
-  })
-  if (!res.ok) {
-    throw new Error(`Tavily extract fallita: ${res.status} ${await res.text()}`)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 30_000)
+  try {
+    const res = await fetch(`${BASE_URL}/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        api_key: getApiKey(),
+        urls,
+      }),
+    })
+    if (!res.ok) {
+      throw new Error(`Tavily extract fallita: ${res.status} ${await res.text()}`)
+    }
+    return res.json()
+  } finally {
+    clearTimeout(timer)
   }
-  return res.json()
 }

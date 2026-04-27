@@ -4,21 +4,28 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWizardStore } from '@/hooks/useWizardStore'
 import { toast } from 'sonner'
-import { ArrowLeft, Plus, X, Loader2, Sparkles, ShoppingCart, FileText } from 'lucide-react'
+import { ArrowLeft, Plus, X, Loader2, Sparkles, ShoppingCart, FileText, Cpu } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+interface SitoInfo {
+  dominio: string
+  categorie: string[]
+}
 
 export function StepLink() {
   const router = useRouter()
   const {
     sitoId, categoria, argomento, fonti, linkInterni,
-    tipoArticolo, linkAmazon,
-    addLink, removeLink, setStep, setTipoArticolo, setLinkAmazon, reset,
+    tipoArticolo, linkAmazon, sistemaCategorie,
+    addLink, removeLink, setStep, setTipoArticolo, setLinkAmazon,
+    setSistemaCategorie, reset,
   } = useWizardStore()
 
   const [nuovoTesto, setNuovoTesto] = useState('')
   const [nuovoUrl, setNuovoUrl] = useState('')
+  const [nuovaCategoria, setNuovaCategoria] = useState('')
   const [invio, setInvio] = useState(false)
-  const [isPulashock, setIsPulashock] = useState(false)
+  const [sitoInfo, setSitoInfo] = useState<SitoInfo | null>(null)
 
   useEffect(() => {
     if (!sitoId) return
@@ -26,27 +33,38 @@ export function StepLink() {
       .then((r) => r.json())
       .then((d) => {
         const sito = d.siti?.find((s: any) => s.id === sitoId)
-        setIsPulashock(sito?.dominio === 'pulashock.it')
+        if (sito) setSitoInfo({ dominio: sito.dominio, categorie: sito.categorie ?? [] })
       })
   }, [sitoId])
 
-  function aggiungi() {
+  const isPulashock = sitoInfo?.dominio === 'pulashock.it'
+  const tipoEffettivo = isPulashock ? tipoArticolo : 'standard'
+
+  function aggiungiLink() {
     if (!nuovoTesto.trim() || !nuovoUrl.trim()) return
     addLink({ testo: nuovoTesto.trim(), url: nuovoUrl.trim() })
     setNuovoTesto('')
     setNuovoUrl('')
   }
 
-  // tipoEffettivo: 'recensione' is valid only for Pulashock, everything else is 'standard'
-  const tipoEffettivo = isPulashock ? tipoArticolo : 'standard'
+  function aggiungiCategoria() {
+    const val = nuovaCategoria.trim()
+    if (!val || sistemaCategorie.includes(val)) return
+    setSistemaCategorie([...sistemaCategorie, val])
+    setNuovaCategoria('')
+  }
+
+  function rimuoviCategoria(cat: string) {
+    setSistemaCategorie(sistemaCategorie.filter((c) => c !== cat))
+  }
 
   async function avvia() {
     if (tipoEffettivo === 'recensione' && !linkAmazon.trim()) {
       toast.error('Inserisci il link Amazon per la recensione')
       return
     }
-    if (tipoEffettivo === 'standard' && linkInterni.length === 0) {
-      toast.error('Aggiungi almeno un link interno prima di procedere')
+    if (tipoEffettivo === 'sistema' && sistemaCategorie.length === 0) {
+      toast.error('Aggiungi almeno un componente del sistema')
       return
     }
     setInvio(true)
@@ -58,10 +76,11 @@ export function StepLink() {
           sitoId,
           tipoArticolo: tipoEffettivo,
           linkAmazon: tipoEffettivo === 'recensione' ? linkAmazon.trim() : undefined,
+          sistemaCategorie: tipoEffettivo === 'sistema' ? sistemaCategorie : undefined,
           categoria,
           argomento,
           fonti,
-          linkInterni,
+          linkInterni: tipoEffettivo === 'standard' ? linkInterni : [],
         }),
       })
       if (!res.ok) {
@@ -82,9 +101,9 @@ export function StepLink() {
     <div className="space-y-8 animate-in">
       <div>
         <p className="text-xs font-medium tracking-widest text-primary uppercase mb-3">Step 4</p>
-        <h2 className="font-display text-3xl text-foreground mb-2">Link interni</h2>
+        <h2 className="font-display text-3xl text-foreground mb-2">Tipo articolo</h2>
         <p className="text-sm text-muted-foreground">
-          Aggiungi i link ai prodotti del tuo e-commerce. Verranno inseriti naturalmente nel testo.
+          Scegli il formato. I link interni sono opzionali per gli articoli standard.
         </p>
       </div>
 
@@ -94,10 +113,11 @@ export function StepLink() {
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Tipo articolo
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {([
-              { value: 'standard', label: 'Articolo standard', desc: 'Informativo, SEO, con link interni', Icon: FileText },
-              { value: 'recensione', label: 'Recensione hi-fi', desc: 'Template fisso Gutenberg + Amazon', Icon: ShoppingCart },
+              { value: 'standard', label: 'Standard', desc: 'Informativo SEO, link opzionali', Icon: FileText },
+              { value: 'recensione', label: 'Recensione', desc: 'Template Gutenberg + Amazon', Icon: ShoppingCart },
+              { value: 'sistema', label: 'Sistema', desc: 'Guida impianto con prodotti del sito', Icon: Cpu },
             ] as const).map(({ value, label, desc, Icon }) => (
               <button
                 key={value}
@@ -121,7 +141,7 @@ export function StepLink() {
         </div>
       )}
 
-      {/* Link Amazon — solo per Pulashock recensione */}
+      {/* Link Amazon — solo recensione */}
       {tipoEffettivo === 'recensione' && (
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -133,13 +153,76 @@ export function StepLink() {
             onChange={(e) => setLinkAmazon(e.target.value)}
             className="w-full px-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all font-mono"
           />
-          <p className="text-xs text-muted-foreground">
-            Verrà inserito nei bottoni Amazon della recensione.
-          </p>
         </div>
       )}
 
-      {/* Link table — nascosto solo per recensioni Pulashock */}
+      {/* Componenti sistema */}
+      {tipoEffettivo === 'sistema' && (
+        <div className="space-y-3">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Componenti da includere *
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Specifica i componenti (es. Amplificatore, Diffusori, DAC, Lettore CD). Claude cercherà il prodotto più adatto per ognuno tra quelli presenti sul sito.
+          </p>
+          {sistemaCategorie.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {sistemaCategorie.map((cat) => (
+                <span
+                  key={cat}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-sm text-foreground"
+                >
+                  {cat}
+                  <button
+                    type="button"
+                    onClick={() => rimuoviCategoria(cat)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              placeholder="es. Amplificatore"
+              value={nuovaCategoria}
+              onChange={(e) => setNuovaCategoria(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && aggiungiCategoria()}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+            />
+            <button
+              type="button"
+              onClick={aggiungiCategoria}
+              disabled={!nuovaCategoria.trim()}
+              className="px-3.5 py-2.5 rounded-xl bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Scorciatoie per Pulashock */}
+          {sitoInfo && sitoInfo.categorie.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {sitoInfo.categorie.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    if (!sistemaCategorie.includes(cat)) setSistemaCategorie([...sistemaCategorie, cat])
+                  }}
+                  disabled={sistemaCategorie.includes(cat)}
+                  className="px-2 py-0.5 rounded-md text-xs border border-border/60 text-muted-foreground bg-muted/20 hover:border-primary/40 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  + {cat}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Link interni — standard, opzionali */}
       {tipoEffettivo === 'standard' && (
         <>
           {linkInterni.length > 0 && (
@@ -163,7 +246,7 @@ export function StepLink() {
 
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Aggiungi link
+              Link interni <span className="normal-case font-normal">(opzionale)</span>
             </label>
             <div className="flex gap-2 flex-wrap sm:flex-nowrap">
               <input
@@ -176,12 +259,12 @@ export function StepLink() {
                 placeholder="https://..."
                 value={nuovoUrl}
                 onChange={(e) => setNuovoUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && aggiungi()}
+                onKeyDown={(e) => e.key === 'Enter' && aggiungiLink()}
                 className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all font-mono"
               />
               <button
                 type="button"
-                onClick={aggiungi}
+                onClick={aggiungiLink}
                 disabled={!nuovoTesto.trim() || !nuovoUrl.trim()}
                 className="px-3.5 py-2.5 rounded-xl bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
               >
@@ -198,7 +281,9 @@ export function StepLink() {
           ['Categoria', categoria],
           tipoEffettivo === 'recensione'
             ? ['Tipo', 'Recensione hi-fi']
-            : ['Link interni', String(linkInterni.length)],
+            : tipoEffettivo === 'sistema'
+              ? ['Componenti', String(sistemaCategorie.length)]
+              : ['Link interni', linkInterni.length ? String(linkInterni.length) : 'Nessuno (opzionale)'],
           ['Fonti', String(fonti.length)],
         ].map(([k, v]) => (
           <div key={k}>

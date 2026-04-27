@@ -1,6 +1,16 @@
 import { spawn } from 'child_process'
+import { execSync } from 'child_process'
 
-const CLAUDE_BIN = process.env.CLAUDE_BIN ?? 'claude'
+function resolveClaude(): string {
+  if (process.env.CLAUDE_BIN) return process.env.CLAUDE_BIN
+  try {
+    return execSync('which claude', { encoding: 'utf8' }).trim()
+  } catch {
+    return 'claude'
+  }
+}
+
+const CLAUDE_BIN = resolveClaude()
 const DEFAULT_TIMEOUT = 5 * 60 * 1000
 
 export function callClaude(
@@ -10,8 +20,12 @@ export function callClaude(
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
   return new Promise((resolve, reject) => {
+    // ANTHROPIC_API_KEY in the env causes Claude CLI to use direct API auth
+    // instead of the OAuth session, breaking --print mode.
+    const { ANTHROPIC_API_KEY: _drop, ...safeEnv } = process.env
     const child = spawn(CLAUDE_BIN, ['--print', '--output-format', 'text', '--dangerously-skip-permissions'], {
       stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...safeEnv, PATH: safeEnv.PATH ?? '/usr/local/bin:/usr/bin:/bin' },
     })
 
     let stdout = ''
@@ -28,7 +42,9 @@ export function callClaude(
     child.on('close', (code) => {
       clearTimeout(timer)
       if (code !== 0) {
-        reject(new Error(`claude CLI uscito con codice ${code}: ${stderr.slice(0, 500)}`))
+        const detail = (stderr + stdout).slice(0, 800)
+        console.error(`[callClaude] exit ${code} | stderr: ${stderr.slice(0, 400)} | stdout: ${stdout.slice(0, 400)}`)
+        reject(new Error(`claude CLI uscito con codice ${code}: ${detail}`))
       } else {
         resolve(stdout.trim())
       }
@@ -36,8 +52,10 @@ export function callClaude(
 
     child.on('error', (err) => {
       clearTimeout(timer)
-      reject(new Error(`Impossibile avviare claude CLI: ${err.message}`))
+      reject(new Error(`Impossibile avviare claude CLI (bin=${CLAUDE_BIN}): ${err.message}`))
     })
+
+    child.stdin.on('error', () => { /* EPIPE se claude chiude prima di stdin */ })
 
     child.stdin.write(prompt)
     child.stdin.end()
