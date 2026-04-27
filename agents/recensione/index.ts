@@ -25,7 +25,7 @@ export interface RecensioneResult {
 export async function runRecensioneAgent(input: RecensioneInput): Promise<RecensioneResult> {
   const prompt = buildRecensionePrompt(input)
 
-  const raw = await callClaudeJson<RecensioneRaw>(prompt, { timeout: 8 * 60 * 1000 })
+  const raw = await callClaudeJson<RecensioneRaw>(prompt, { timeout: 15 * 60 * 1000 })
 
   return {
     versione: {

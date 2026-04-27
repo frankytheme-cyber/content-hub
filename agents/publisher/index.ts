@@ -77,15 +77,14 @@ export async function runPublisherAgent(input: PublishInput): Promise<PublishRes
     ? versione.corpo
     : markdownToGutenberg(versione.corpo)
 
-  // Usa credenziali WP del sito se disponibili, altrimenti .env.local
   const sito = versione.articolo.session.sito
-  if (sito?.wpSiteUrl) process.env.WORDPRESS_SITE_URL = sito.wpSiteUrl
-  if (sito?.wpUsername) process.env.WORDPRESS_USERNAME = sito.wpUsername
-  if (sito?.wpAppPassword) process.env.WORDPRESS_APP_PASSWORD = sito.wpAppPassword
-
   const wpClient = new WordPressMcpClient()
   try {
-    await wpClient.connect()
+    await wpClient.connect(
+      sito?.wpSiteUrl
+        ? { siteUrl: sito.wpSiteUrl, username: sito.wpUsername ?? undefined, appPassword: sito.wpAppPassword ?? undefined }
+        : undefined
+    )
 
     // Carica immagine in evidenza se disponibile
     let featuredMediaId: number | undefined

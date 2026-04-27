@@ -46,6 +46,7 @@ export interface GenerationInput {
   categoria: string
   argomento: string
   toni: [string, string]
+  sitoIstruzioni?: string
 }
 
 export interface ArticoloBozza {

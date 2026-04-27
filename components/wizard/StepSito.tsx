@@ -23,7 +23,12 @@ export function StepSito() {
   useEffect(() => {
     fetch('/api/siti')
       .then((r) => r.json())
-      .then((d) => { setSiti(d.siti ?? []); setLoading(false) })
+      .then((d) => {
+        const lista: SitoOption[] = d.siti ?? []
+        setSiti(lista)
+        setLoading(false)
+        if (sitoId && !lista.some((s) => s.id === sitoId)) setSitoId('')
+      })
       .catch(() => setLoading(false))
   }, [])
 
@@ -34,7 +39,6 @@ export function StepSito() {
   }
 
   function avanti() {
-    if (!sitoId) return
     setStep(2)
     router.push('/wizard/categoria')
   }
@@ -54,6 +58,12 @@ export function StepSito() {
           {[1, 2].map((i) => (
             <div key={i} className="h-24 rounded-xl bg-muted/30 animate-pulse border border-border/40" />
           ))}
+        </div>
+      ) : siti.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center gap-2 rounded-xl border border-dashed border-border/60 text-muted-foreground">
+          <Globe className="h-6 w-6 mb-1 opacity-40" />
+          <p className="text-sm">Nessun sito configurato.</p>
+          <p className="text-xs opacity-70">Puoi procedere senza selezionare un sito.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -118,8 +128,7 @@ export function StepSito() {
       <div className="flex justify-end pt-2">
         <button
           onClick={avanti}
-          disabled={!sitoId}
-          className="group inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-30 disabled:pointer-events-none hover:brightness-110 transition-all"
+          className="group inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:brightness-110 transition-all"
         >
           Avanti
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

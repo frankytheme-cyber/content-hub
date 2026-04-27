@@ -50,7 +50,7 @@ Sulla base di queste fonti, produci un report strutturato in JSON con questi cam
 
 Restituisci SOLO il JSON, senza markdown o testo aggiuntivo.`
 
-  const result = await callClaudeJson<ResearchResult>(prompt, { timeout: 3 * 60 * 1000 })
+  const result = await callClaudeJson<ResearchResult>(prompt, { timeout: 5 * 60 * 1000 })
 
   // Aggiungi le fonti Tavily se non già presenti nel risultato
   const urlNelRisultato = new Set(result.fonti?.map((f: ResearchSource) => f.url) ?? [])

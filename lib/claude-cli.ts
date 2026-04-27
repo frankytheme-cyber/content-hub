@@ -10,7 +10,7 @@ export function callClaude(
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
   return new Promise((resolve, reject) => {
-    const child = spawn(CLAUDE_BIN, ['--print', '--output-format', 'text'], {
+    const child = spawn(CLAUDE_BIN, ['--print', '--output-format', 'text', '--dangerously-skip-permissions'], {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 

@@ -27,10 +27,10 @@ export class WordPressMcpClient {
   private baseUrl: string = ''
   private authHeader: string = ''
 
-  async connect() {
-    const siteUrl = process.env.WORDPRESS_SITE_URL
-    const username = process.env.WORDPRESS_USERNAME
-    const appPassword = process.env.WORDPRESS_APP_PASSWORD
+  async connect(credentials?: { siteUrl?: string; username?: string; appPassword?: string }) {
+    const siteUrl = credentials?.siteUrl ?? process.env.WORDPRESS_SITE_URL
+    const username = credentials?.username ?? process.env.WORDPRESS_USERNAME
+    const appPassword = credentials?.appPassword ?? process.env.WORDPRESS_APP_PASSWORD
 
     if (!siteUrl || !username || !appPassword) {
       throw new Error(

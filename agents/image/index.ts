@@ -34,7 +34,7 @@ export async function runImageAgent(input: ImageInput): Promise<ImageResult> {
     `Scrivi un testo alternativo (alt text) SEO per un'immagine su questo argomento: "${argomento}" nella categoria "${categoria}".
 Il testo deve essere conciso (massimo 125 caratteri), descrittivo e includere la keyword principale.
 Restituisci SOLO il testo alt, senza virgolette o spiegazioni.`,
-    { timeout: 30_000 }
+    { timeout: 60_000 }
   )
 
   return {
