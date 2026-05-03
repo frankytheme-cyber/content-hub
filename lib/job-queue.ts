@@ -9,6 +9,7 @@ export interface PipelineJobData {
   sessionId: string
   jobId: string
   input: WizardInput
+  tipo?: 'CREAZIONE' | 'AGGIORNAMENTO'
 }
 
 export interface LinkAnalysisJobData {
@@ -53,8 +54,14 @@ export async function startWorker() {
   worker = new Worker(
     QUEUE_NAME,
     async (job) => {
-      const { runPipeline } = await import('@/agents')
-      await runPipeline(job.data as PipelineJobData)
+      const data = job.data as PipelineJobData
+      if (data.tipo === 'AGGIORNAMENTO') {
+        const { runAggiornamentoPipeline } = await import('@/agents')
+        await runAggiornamentoPipeline(data)
+      } else {
+        const { runPipeline } = await import('@/agents')
+        await runPipeline(data)
+      }
     },
     {
       connection,

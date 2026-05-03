@@ -26,21 +26,26 @@ ${ricerca.keywordsCorrelate.slice(0, 10).join(', ')}
 LINK INTERNI DA INSERIRE NEL TESTO:
 ${linkList || 'Nessun link interno richiesto'}
 
-ISTRUZIONI:
+ISTRUZIONI SEO E GEO:
 1. Scrivi un articolo completo di 900-1200 parole in italiano
-2. Usa una struttura H1 → H2 → H2 → ... con heading pertinenti
+2. Usa una struttura H1 → H2 → H2 → ... con heading che contengono keyword naturali
 3. Inserisci i link interni naturalmente nel testo usando ESATTAMENTE il testo anchor specificato, formattato come link Markdown: [testo anchor](url)
-4. Includi una sezione "Punti Chiave" all'inizio o alla fine (utile per GEO - ottimizzazione per AI)
-5. Il tono "${tono}" deve essere coerente in tutto l'articolo
-6. L'articolo deve essere informativo, utile e non promozionale in modo esplicito
-7. Includi la keyword principale nel primo paragrafo e in almeno un H2
+4. Inizia con un paragrafo introduttivo che risponde direttamente alla domanda principale (ottimizzazione GEO: i motori AI estraggono risposte dirette)
+5. Includi una sezione "## Punti chiave" in apertura con 3-5 bullet point sintetici (fondamentale per GEO)
+6. Aggiungi una sezione "## Domande frequenti" con 3-4 Q&A in fondo (schema FAQ, GEO snippet)
+7. Definisci i termini tecnici o di settore la prima volta che li usi (entity clarity per GEO)
+8. Cita entità specifiche (brand, luoghi, persone, prodotti) in modo preciso e verificabile
+9. Il tono "${tono}" deve essere coerente in tutto l'articolo
+10. L'articolo deve essere informativo e utile; evita toni troppo promozionali
+11. Includi la keyword principale nel primo paragrafo e in almeno un H2 (densità 1-2%)
 
-Restituisci SOLO un JSON con questa struttura:
-{
-  "titolo": "Titolo dell'articolo (H1, con keyword principale)",
-  "corpo": "Corpo completo in Markdown",
-  "estratto": "Estratto breve di 2-3 frasi per i motori di ricerca"
-}
+Rispondi ESATTAMENTE in questo formato — nessun testo prima o dopo:
 
-Restituisci SOLO il JSON, senza markdown o testo aggiuntivo.`
+<ARTICLE>
+[corpo completo dell'articolo in Markdown, senza il titolo]
+</ARTICLE>
+
+<META>
+{"titolo": "Titolo H1 con keyword principale", "estratto": "Estratto di 2-3 frasi per i motori di ricerca"}
+</META>`
 }

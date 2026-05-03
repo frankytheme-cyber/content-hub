@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { FiltriBar } from '@/components/dashboard/FiltriBar'
 import { ArticleGrid } from '@/components/dashboard/ArticleGrid'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PenLine, Link2 } from 'lucide-react'
+import { PenLine, Link2, RefreshCw } from 'lucide-react'
 
 export default function DashboardPage() {
   return (
@@ -27,6 +27,13 @@ export default function DashboardPage() {
             >
               <Link2 className="h-3.5 w-3.5" />
               Link interni
+            </Link>
+            <Link
+              href="/aggiornamento"
+              className="inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-border bg-background hover:bg-muted text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Aggiorna articolo
             </Link>
             <Link
               href="/wizard"

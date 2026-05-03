@@ -3,7 +3,7 @@
 export interface WizardInput {
   sitoId?: string
   sitoIstruzioni?: string  // iniettato dalla pipeline, non dal client
-  tipoArticolo?: 'standard' | 'recensione' | 'sistema'
+  tipoArticolo?: 'standard' | 'recensione' | 'sistema' | 'biografia'
   linkAmazon?: string
   sistemaCategorie?: string[]
   categoria: string
@@ -148,8 +148,35 @@ export type PipelineFase =
   | 'seo'
   | 'immagini'
   | 'salvataggio'
+  | 'recupero'
+  | 'aggiornamento'
   | 'completato'
   | 'errore'
+
+// ─── Aggiornamento Agent ─────────────────────────────────────────────────────
+
+export interface AggiornamentoInput {
+  titolo: string
+  contenutoOriginale: string
+  ricerca: ResearchResult
+  istruzioniSito: string
+  focus?: string
+  tipoArticolo?: 'standard' | 'biografia'
+}
+
+export interface ApplyUpdateInput {
+  versioneId: string
+  wpPostId: number
+  wpSiteUrl: string
+  wpUsername: string
+  wpAppPassword: string
+}
+
+export interface ApplyUpdateResult {
+  wpPostId: number
+  wpPostUrl: string
+  aggiornatoIl: string
+}
 
 export interface JobEvent {
   jobId: string

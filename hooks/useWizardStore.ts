@@ -8,7 +8,7 @@ import type { LinkInternoInput } from '@/types/agents'
 interface WizardStore extends WizardState {
   setStep: (step: 1 | 2 | 3 | 4) => void
   setSitoId: (sitoId: string) => void
-  setTipoArticolo: (tipo: 'standard' | 'recensione' | 'sistema') => void
+  setTipoArticolo: (tipo: 'standard' | 'recensione' | 'sistema' | 'biografia') => void
   setLinkAmazon: (link: string) => void
   setCategoria: (categoria: string) => void
   setArgomento: (argomento: string) => void
@@ -20,6 +20,7 @@ interface WizardStore extends WizardState {
   removeLink: (index: number) => void
   updateLink: (index: number, link: LinkInternoInput) => void
   setSistemaCategorie: (categorie: string[]) => void
+  setCategoriaArtista: (cat: string) => void
   reset: () => void
 }
 
@@ -28,6 +29,7 @@ const initialState: WizardState = {
   sitoId: '',
   tipoArticolo: 'standard',
   linkAmazon: '',
+  categoriaArtista: '',
   categoria: '',
   argomento: '',
   fonti: [],
@@ -44,6 +46,7 @@ export const useWizardStore = create<WizardStore>()(
       setSitoId: (sitoId) => set({ sitoId }),
       setTipoArticolo: (tipoArticolo) => set({ tipoArticolo }),
       setSistemaCategorie: (sistemaCategorie) => set({ sistemaCategorie }),
+      setCategoriaArtista: (categoriaArtista) => set({ categoriaArtista }),
       setLinkAmazon: (linkAmazon) => set({ linkAmazon }),
       setCategoria: (categoria) => set({ categoria }),
       setArgomento: (argomento) => set({ argomento }),
@@ -73,6 +76,7 @@ export const useWizardStore = create<WizardStore>()(
         fonti: state.fonti,
         linkInterni: state.linkInterni,
         sistemaCategorie: state.sistemaCategorie,
+        categoriaArtista: state.categoriaArtista,
       }),
     }
   )

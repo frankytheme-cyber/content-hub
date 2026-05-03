@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { usePatchArticolo } from '@/hooks/useArticles'
+import { usePatchArticolo, useRevisioneArticolo } from '@/hooks/useArticles'
 import { toast } from 'sonner'
-import { Star, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Star, Check, ChevronDown, ChevronUp, PenLine, Loader2 } from 'lucide-react'
 import type { VersioneDetail } from '@/types/api'
 
 interface VersionSelectorProps {
@@ -20,8 +20,11 @@ export function VersionSelector({
   onVersioneScelta,
 }: VersionSelectorProps) {
   const { mutate: patch } = usePatchArticolo(articoloId)
+  const { mutate: richiediRevisione, isPending: isRevising } = useRevisioneArticolo(articoloId)
   const [activeId, setActiveId] = useState(versioni[0]?.id ?? null)
   const [schemaAperto, setSchemaAperto] = useState(false)
+  const [pannelloRevisioneAperto, setPannelloRevisioneAperto] = useState(false)
+  const [richiestaRevisione, setRichiestaRevisione] = useState('')
 
   function seleziona(versioneId: string) {
     patch(
@@ -32,6 +35,22 @@ export function VersionSelector({
           onVersioneScelta?.(versioneId)
         },
         onError: () => toast.error('Errore nella selezione'),
+      }
+    )
+  }
+
+  function inviaRevisione() {
+    if (!richiestaRevisione.trim() || !activeId) return
+    richiediRevisione(
+      { versioneId: activeId, richiesta: richiestaRevisione.trim() },
+      {
+        onSuccess: (data) => {
+          toast.success('Revisione completata')
+          setRichiestaRevisione('')
+          setPannelloRevisioneAperto(false)
+          setActiveId(data.versioneId)
+        },
+        onError: (err) => toast.error(err.message ?? 'Errore durante la revisione'),
       }
     )
   }
@@ -117,6 +136,68 @@ export function VersionSelector({
             <Check className="h-3.5 w-3.5" />
             Seleziona
           </button>
+        )}
+      </div>
+
+      {/* Pannello revisione — sopra il testo dell'articolo */}
+      <div className="mb-5 rounded-xl border border-border overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setPannelloRevisioneAperto((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <PenLine className="h-4 w-4" />
+            Richiedi una correzione o aggiunta
+          </span>
+          {pannelloRevisioneAperto
+            ? <ChevronUp className="h-4 w-4" />
+            : <ChevronDown className="h-4 w-4" />
+          }
+        </button>
+
+        {pannelloRevisioneAperto && (
+          <div className="px-5 pb-5 pt-1 space-y-3 border-t border-border/60">
+            <p className="text-xs text-muted-foreground">
+              Descrivi cosa vuoi modificare, aggiungere o correggere. Claude genererà una nuova versione con le modifiche applicate.
+            </p>
+            <textarea
+              value={richiestaRevisione}
+              onChange={(e) => setRichiestaRevisione(e.target.value)}
+              placeholder="Es: Aggiungi una sezione sui dischi degli anni '90. Rendi l'introduzione più coinvolgente. Aggiorna le date con quelle più recenti."
+              rows={3}
+              disabled={isRevising}
+              className="w-full px-4 py-3 text-sm bg-background border border-border rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60 disabled:opacity-50"
+            />
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setPannelloRevisioneAperto(false); setRichiestaRevisione('') }}
+                disabled={isRevising}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={inviaRevisione}
+                disabled={isRevising || !richiestaRevisione.trim()}
+                className="inline-flex items-center gap-2 h-8 px-4 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium hover:bg-primary/20 hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRevising ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Revisione in corso...
+                  </>
+                ) : (
+                  <>
+                    <PenLine className="h-3.5 w-3.5" />
+                    Applica revisione
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

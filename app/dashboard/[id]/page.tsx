@@ -7,6 +7,7 @@ import { VersionSelector } from '@/components/article/VersionSelector'
 import { SeoPanel } from '@/components/article/SeoPanel'
 import { ImagePicker } from '@/components/article/ImagePicker'
 import { PubblicaButton } from '@/components/article/PubblicaButton'
+import { OriginaleProposta } from '@/components/article/OriginaleProposta'
 import { StatoBadge } from '@/components/dashboard/StatoBadge'
 import { ArrowLeft, Calendar, Tag } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -94,6 +95,19 @@ export default function ArticoloPage() {
 
       {/* Content */}
       <div className="flex-1 container mx-auto max-w-5xl px-4 py-8">
+
+        {/* Aggiornamento: originale vs proposta */}
+        {articolo.session.tipo === 'AGGIORNAMENTO' && versioneAttiva && (
+          <div className="mb-10">
+            <OriginaleProposta
+              articoloId={id}
+              versioneId={versioneScelta ?? versioneAttiva.id}
+              session={articolo.session}
+              corpo={versioneAttiva.corpo}
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start">
 
           {/* Main: versions */}
@@ -101,7 +115,7 @@ export default function ArticoloPage() {
             <div className="flex items-center gap-2 mb-5">
               <div className="h-px flex-1 bg-border/60" />
               <span className="text-xs font-medium tracking-widest text-muted-foreground uppercase px-3">
-                Versioni dell&apos;articolo
+                {articolo.session.tipo === 'AGGIORNAMENTO' ? 'Contenuto proposto' : 'Versioni dell\'articolo'}
               </span>
               <div className="h-px flex-1 bg-border/60" />
             </div>

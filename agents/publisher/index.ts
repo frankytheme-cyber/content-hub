@@ -10,7 +10,7 @@ function inlineMarkdown(text: string): string {
     .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
 }
 
-function markdownToGutenberg(md: string): string {
+export function markdownToGutenberg(md: string): string {
   const lines = md.split('\n')
   const blocks: string[] = []
   let listItems: string[] = []

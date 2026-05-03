@@ -3,8 +3,9 @@ import type { LinkInternoInput } from './agents'
 export interface WizardState {
   step: 1 | 2 | 3 | 4
   sitoId: string
-  tipoArticolo: 'standard' | 'recensione' | 'sistema'
+  tipoArticolo: 'standard' | 'recensione' | 'sistema' | 'biografia'
   linkAmazon: string
+  categoriaArtista: string
   categoria: string
   argomento: string
   fonti: string[]

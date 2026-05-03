@@ -13,17 +13,26 @@ const FASI: Record<string, { label: string; desc: string }> = {
   seo:          { label: 'Ottimizzazione SEO',   desc: 'Affinando keyword e metadata GEO...' },
   immagini:     { label: 'Ricerca immagine',     desc: 'Trovando la foto perfetta...' },
   salvataggio:  { label: 'Salvataggio',          desc: 'Archiviando il contenuto...' },
+  recupero:     { label: 'Recupero articolo',    desc: 'Scaricando il contenuto da WordPress...' },
+  aggiornamento:{ label: 'Aggiornamento',        desc: 'Generando il contenuto aggiornato...' },
   completato:   { label: 'Completato',           desc: '' },
   errore:       { label: 'Errore',               desc: '' },
 }
 
-const FASI_ORDER = ['ricerca', 'generazione', 'revisione', 'seo', 'immagini', 'salvataggio', 'completato']
+const FASI_ORDER_CREAZIONE = ['ricerca', 'generazione', 'revisione', 'seo', 'immagini', 'salvataggio', 'completato']
+const FASI_ORDER_AGGIORNAMENTO = ['recupero', 'ricerca', 'aggiornamento', 'revisione', 'salvataggio', 'completato']
 
 export default function ProgressoPage() {
   const { jobId } = useParams<{ jobId: string }>()
   const router = useRouter()
   const { fase, progresso, messaggi, completato, errore } = useJobStream(jobId)
   const [retrying, setRetrying] = useState(false)
+  const [tipoJob, setTipoJob] = useState<'creazione' | 'aggiornamento'>('creazione')
+
+  useEffect(() => {
+    if (fase === 'recupero' || fase === 'aggiornamento') setTipoJob('aggiornamento')
+    else if (fase === 'generazione' || fase === 'seo' || fase === 'immagini') setTipoJob('creazione')
+  }, [fase])
 
   useEffect(() => {
     if (completato) {
@@ -43,8 +52,9 @@ export default function ProgressoPage() {
     }
   }
 
+  const fasesOrder = tipoJob === 'aggiornamento' ? FASI_ORDER_AGGIORNAMENTO : FASI_ORDER_CREAZIONE
   const faseInfo = fase ? FASI[fase] : null
-  const faseIndex = fase ? FASI_ORDER.indexOf(fase) : -1
+  const faseIndex = fase ? fasesOrder.indexOf(fase) : -1
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
@@ -95,7 +105,7 @@ export default function ProgressoPage() {
 
             {/* Step pills */}
             <div className="flex gap-1.5 flex-wrap justify-center">
-              {FASI_ORDER.slice(0, -1).map((f, i) => (
+              {fasesOrder.slice(0, -1).map((f, i) => (
                 <span
                   key={f}
                   className={[

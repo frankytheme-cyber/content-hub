@@ -13,6 +13,8 @@ const PROGRESSO_PER_FASE: Record<string, number> = {
   seo: 83,
   immagini: 93,
   salvataggio: 95,
+  recupero: 10,
+  aggiornamento: 65,
   completato: 100,
   errore: 0,
 }

@@ -19,9 +19,11 @@ ${fontiTesto}
 ISTRUZIONI:
 1. Verifica che le affermazioni fattuali siano supportate dalle fonti
 2. Identifica errori grammaticali e stilistici in italiano
-3. Valuta la qualità complessiva con un punteggio da 0 a 100
-4. Se il punteggio è >= 75, l'articolo è approvato
-5. Per ogni correzione, riporta il testo ESATTO originale e la versione corretta
+3. Verifica i requisiti SEO: keyword principale nel primo paragrafo, almeno un H2 con keyword, densità 1-2%
+4. Verifica i requisiti GEO: presenza di sezione "Punti chiave", sezione "Domande frequenti", risposta diretta nel primo paragrafo
+5. Valuta la qualità complessiva con un punteggio da 0 a 100 (SEO e GEO contano 30% del punteggio)
+6. Se il punteggio è >= 75, l'articolo è approvato
+7. Per ogni correzione, riporta il testo ESATTO originale e la versione corretta
 
 Restituisci SOLO un JSON con questa struttura:
 {

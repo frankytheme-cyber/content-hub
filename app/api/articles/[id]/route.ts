@@ -16,7 +16,19 @@ export async function GET(
   const articolo = await prisma.articolo.findUnique({
     where: { id },
     include: {
-      session: { select: { categoria: true, argomento: true, sito: { select: { wpSiteUrl: true } } } },
+      session: {
+        select: {
+          categoria: true,
+          argomento: true,
+          tipo: true,
+          contenutoOriginale: true,
+          wpPostId: true,
+          wpPostUrl: true,
+          wpPostType: true,
+          focusAggiornamento: true,
+          sito: { select: { wpSiteUrl: true, wpUsername: true, wpAppPassword: true } },
+        },
+      },
       versioni: true,
     },
   })

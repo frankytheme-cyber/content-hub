@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ArticlesResponse, ArticoloDetailResponse } from '@/types/api'
+import type { ArticlesResponse, ArticoloDetailResponse, ReviseResponse } from '@/types/api'
 
 export function useArticles(stato?: string, page = 1) {
   const params = new URLSearchParams()
@@ -41,6 +41,25 @@ export function usePatchArticolo(id: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['article', id] })
       queryClient.invalidateQueries({ queryKey: ['articles'] })
+    },
+  })
+}
+
+export function useRevisioneArticolo(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation<ReviseResponse, Error, { versioneId: string; richiesta: string }>({
+    mutationFn: (data) =>
+      fetch(`/api/articles/${id}/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(async (r) => {
+        const json = await r.json()
+        if (!r.ok) throw new Error(json.errore ?? 'Errore revisione')
+        return json
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['article', id] })
     },
   })
 }

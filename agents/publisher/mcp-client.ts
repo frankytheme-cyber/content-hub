@@ -75,7 +75,7 @@ export class WordPressMcpClient {
     return { id: data.id, link: data.link, status: data.status }
   }
 
-  async listPosts(opts: { page: number; perPage?: number; status?: string } = { page: 1 }): Promise<{
+  async listPosts(opts: { page: number; perPage?: number; status?: string; postType?: string } = { page: 1 }): Promise<{
     posts: Array<{
       id: number
       slug: string
@@ -89,7 +89,8 @@ export class WordPressMcpClient {
     if (!this.baseUrl) throw new Error('Client non connesso')
     const perPage = opts.perPage ?? 100
     const status = opts.status ?? 'publish'
-    const url = `${this.baseUrl}/posts?_fields=id,slug,link,title,excerpt,content&per_page=${perPage}&page=${opts.page}&status=${status}&orderby=date&order=desc`
+    const endpoint = opts.postType ?? 'posts'
+    const url = `${this.baseUrl}/${endpoint}?_fields=id,slug,link,title,excerpt,content&per_page=${perPage}&page=${opts.page}&status=${status}&orderby=date&order=desc`
 
     const res = await fetch(url, {
       headers: { Authorization: this.authHeader },
@@ -112,9 +113,10 @@ export class WordPressMcpClient {
     return { posts, totalPages }
   }
 
-  async getPost(id: number): Promise<{ id: number; link: string; content: { rendered: string; raw?: string } }> {
+  async getPost(id: number, postType?: string): Promise<{ id: number; link: string; content: { rendered: string; raw?: string } }> {
     if (!this.baseUrl) throw new Error('Client non connesso')
-    const res = await fetch(`${this.baseUrl}/posts/${id}?context=edit&_fields=id,link,content`, {
+    const endpoint = postType ?? 'posts'
+    const res = await fetch(`${this.baseUrl}/${endpoint}/${id}?context=edit&_fields=id,link,content`, {
       headers: { Authorization: this.authHeader },
     })
     if (!res.ok) {
@@ -124,9 +126,10 @@ export class WordPressMcpClient {
     return res.json() as Promise<{ id: number; link: string; content: { rendered: string; raw?: string } }>
   }
 
-  async updatePostContent(id: number, content: string): Promise<void> {
+  async updatePostContent(id: number, content: string, postType?: string): Promise<void> {
     if (!this.baseUrl) throw new Error('Client non connesso')
-    const res = await fetch(`${this.baseUrl}/posts/${id}`, {
+    const endpoint = postType ?? 'posts'
+    const res = await fetch(`${this.baseUrl}/${endpoint}/${id}`, {
       method: 'POST',
       headers: {
         Authorization: this.authHeader,
@@ -211,6 +214,28 @@ export class WordPressMcpClient {
       }
     }
     return ids
+  }
+
+  async listPostTypes(): Promise<Record<string, { slug: string; rest_base: string; name: string }>> {
+    if (!this.baseUrl) throw new Error('Client non connesso')
+    const res = await fetch(`${this.baseUrl}/types?context=edit`, {
+      headers: { Authorization: this.authHeader },
+    })
+    if (!res.ok) return {}
+    const data = await res.json()
+    if (typeof data !== 'object' || Array.isArray(data)) return {}
+    return data as Record<string, { slug: string; rest_base: string; name: string }>
+  }
+
+  async listPostTypesPublic(): Promise<Record<string, { slug: string; rest_base: string; name: string }>> {
+    if (!this.baseUrl) throw new Error('Client non connesso')
+    const res = await fetch(`${this.baseUrl}/types`, {
+      headers: { Authorization: this.authHeader },
+    })
+    if (!res.ok) return {}
+    const data = await res.json()
+    if (typeof data !== 'object' || Array.isArray(data)) return {}
+    return data as Record<string, { slug: string; rest_base: string; name: string }>
   }
 
   async disconnect() {

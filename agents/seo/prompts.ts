@@ -24,28 +24,30 @@ ISTRUZIONI PER L'OTTIMIZZAZIONE DEL CORPO:
 5. Non aggiungere link o modificare i link esistenti
 6. Non cambiare la struttura generale dell'articolo
 
-Restituisci SOLO un JSON con questa struttura:
-{
-  "metadata": {
-    "metaTitolo": "titolo SEO ottimizzato (max 60 caratteri)",
-    "metaDescrizione": "descrizione SEO coinvolgente (max 160 caratteri)",
-    "keywordPrincipale": "keyword principale dell'articolo",
-    "keywordSecondarie": ["keyword 2", "keyword 3", ...] (5-8 keyword),
-    "slug": "slug-url-ottimizzato-senza-accenti",
-    "schemaMarkup": {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": "...",
-      "description": "...",
-      "keywords": "...",
-      "articleSection": "..."
-    },
-    "geoHints": ["entità 1", "brand 1", ...] (entità nominate per GEO),
-    "ogTitolo": "titolo Open Graph",
-    "ogDescrizione": "descrizione Open Graph (max 200 caratteri)"
-  },
-  "corpoOttimizzato": "corpo completo ottimizzato in Markdown"
-}
+Rispondi ESATTAMENTE in questo formato — nessun testo prima o dopo:
 
-Restituisci SOLO il JSON.`
+<ARTICLE>
+[corpo completo ottimizzato in Markdown]
+</ARTICLE>
+
+<META>
+{
+  "metaTitolo": "titolo SEO ottimizzato (max 60 caratteri)",
+  "metaDescrizione": "descrizione SEO coinvolgente (max 160 caratteri)",
+  "keywordPrincipale": "keyword principale dell'articolo",
+  "keywordSecondarie": ["keyword 2", "keyword 3"],
+  "slug": "slug-url-ottimizzato-senza-accenti",
+  "schemaMarkup": {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "...",
+    "description": "...",
+    "keywords": "...",
+    "articleSection": "..."
+  },
+  "geoHints": ["entità 1", "brand 1"],
+  "ogTitolo": "titolo Open Graph",
+  "ogDescrizione": "descrizione Open Graph (max 200 caratteri)"
+}
+</META>`
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWizardStore } from '@/hooks/useWizardStore'
 import { toast } from 'sonner'
-import { ArrowLeft, Plus, X, Loader2, Sparkles, ShoppingCart, FileText, Cpu } from 'lucide-react'
+import { ArrowLeft, Plus, X, Loader2, Sparkles, ShoppingCart, FileText, Cpu, Music } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SitoInfo {
@@ -15,10 +15,10 @@ interface SitoInfo {
 export function StepLink() {
   const router = useRouter()
   const {
-    sitoId, categoria, argomento, fonti, linkInterni,
+    sitoId, categoria, categoriaArtista, argomento, fonti, linkInterni,
     tipoArticolo, linkAmazon, sistemaCategorie,
     addLink, removeLink, setStep, setTipoArticolo, setLinkAmazon,
-    setSistemaCategorie, reset,
+    setSistemaCategorie, setCategoriaArtista, reset,
   } = useWizardStore()
 
   const [nuovoTesto, setNuovoTesto] = useState('')
@@ -37,8 +37,7 @@ export function StepLink() {
       })
   }, [sitoId])
 
-  const isPulashock = sitoInfo?.dominio === 'pulashock.it'
-  const tipoEffettivo = isPulashock ? tipoArticolo : 'standard'
+  const tipoEffettivo = tipoArticolo
 
   function aggiungiLink() {
     if (!nuovoTesto.trim() || !nuovoUrl.trim()) return
@@ -77,10 +76,10 @@ export function StepLink() {
           tipoArticolo: tipoEffettivo,
           linkAmazon: tipoEffettivo === 'recensione' ? linkAmazon.trim() : undefined,
           sistemaCategorie: tipoEffettivo === 'sistema' ? sistemaCategorie : undefined,
-          categoria,
+          categoria: tipoEffettivo === 'biografia' ? categoriaArtista : categoria,
           argomento,
           fonti,
-          linkInterni: tipoEffettivo === 'standard' ? linkInterni : [],
+          linkInterni: (tipoEffettivo === 'standard' || tipoEffettivo === 'biografia') ? linkInterni : [],
         }),
       })
       if (!res.ok) {
@@ -107,17 +106,17 @@ export function StepLink() {
         </p>
       </div>
 
-      {/* Tipo articolo — solo per Pulashock */}
-      {isPulashock && (
-        <div className="space-y-2">
+      {/* Tipo articolo */}
+      <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Tipo articolo
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {([
               { value: 'standard', label: 'Standard', desc: 'Informativo SEO, link opzionali', Icon: FileText },
               { value: 'recensione', label: 'Recensione', desc: 'Template Gutenberg + Amazon', Icon: ShoppingCart },
               { value: 'sistema', label: 'Sistema', desc: 'Guida impianto con prodotti del sito', Icon: Cpu },
+              { value: 'biografia', label: 'Biografia', desc: 'Biografia artista musicale', Icon: Music },
             ] as const).map(({ value, label, desc, Icon }) => (
               <button
                 key={value}
@@ -139,9 +138,24 @@ export function StepLink() {
             ))}
           </div>
         </div>
+
+      {/* Categoria artista — solo biografia */}
+      {tipoEffettivo === 'biografia' && (
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Genere / categoria artista
+          </label>
+          <input
+            placeholder="es. Rock italiano, Hip-hop, Jazz..."
+            value={categoriaArtista}
+            onChange={(e) => setCategoriaArtista(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+          />
+        </div>
       )}
 
       {/* Link Amazon — solo recensione */}
+
       {tipoEffettivo === 'recensione' && (
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -222,8 +236,8 @@ export function StepLink() {
         </div>
       )}
 
-      {/* Link interni — standard, opzionali */}
-      {tipoEffettivo === 'standard' && (
+      {/* Link interni — standard e biografia */}
+      {(tipoEffettivo === 'standard' || tipoEffettivo === 'biografia') && (
         <>
           {linkInterni.length > 0 && (
             <div className="rounded-xl border border-border overflow-hidden">
@@ -246,17 +260,20 @@ export function StepLink() {
 
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Link interni <span className="normal-case font-normal">(opzionale)</span>
+              {tipoEffettivo === 'biografia'
+                ? <>Recensioni su pulashock.it <span className="normal-case font-normal">(opzionale)</span></>
+                : <>Link interni <span className="normal-case font-normal">(opzionale)</span></>
+              }
             </label>
             <div className="flex gap-2 flex-wrap sm:flex-nowrap">
               <input
-                placeholder="Testo anchor"
+                placeholder={tipoEffettivo === 'biografia' ? 'Titolo album' : 'Testo anchor'}
                 value={nuovoTesto}
                 onChange={(e) => setNuovoTesto(e.target.value)}
                 className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
               />
               <input
-                placeholder="https://..."
+                placeholder={tipoEffettivo === 'biografia' ? 'https://pulashock.it/recensioni/...' : 'https://...'}
                 value={nuovoUrl}
                 onChange={(e) => setNuovoUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && aggiungiLink()}
@@ -283,7 +300,9 @@ export function StepLink() {
             ? ['Tipo', 'Recensione hi-fi']
             : tipoEffettivo === 'sistema'
               ? ['Componenti', String(sistemaCategorie.length)]
-              : ['Link interni', linkInterni.length ? String(linkInterni.length) : 'Nessuno (opzionale)'],
+              : tipoEffettivo === 'biografia'
+                ? ['Recensioni linkate', linkInterni.length ? String(linkInterni.length) : 'Nessuna (opzionale)']
+                : ['Link interni', linkInterni.length ? String(linkInterni.length) : 'Nessuno (opzionale)'],
           ['Fonti', String(fonti.length)],
         ].map(([k, v]) => (
           <div key={k}>

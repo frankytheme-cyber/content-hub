@@ -20,19 +20,25 @@ model Sito {
 }
 
 model Session {
-  id          String       @id @default(cuid())
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  stato       StatoSession @default(IN_ATTESA)
-  sitoId      String?
-  sito        Sito?        @relation(fields: [sitoId], references: [id])
-  categoria   String
-  argomento   String
-  fonti       String[]
-  ricercaJson Json?
-  linkInterni LinkInterno[]
-  articoli    Articolo[]
-  jobs        Job[]
+  id                 String       @id @default(cuid())
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  stato              StatoSession @default(IN_ATTESA)
+  tipo               SessioneTipo @default(CREAZIONE)
+  sitoId             String?
+  sito               Sito?        @relation(fields: [sitoId], references: [id])
+  categoria          String
+  argomento          String
+  fonti              String[]
+  ricercaJson        Json?
+  wpPostId           Int?
+  wpPostUrl          String?
+  wpPostType         String?    @default("post")
+  contenutoOriginale String?
+  focusAggiornamento String?
+  linkInterni        LinkInterno[]
+  articoli           Articolo[]
+  jobs               Job[]
 }
 
 model LinkInterno {
@@ -87,6 +93,11 @@ enum StatoSession {
   IN_CORSO
   COMPLETATA
   FALLITA
+}
+
+enum SessioneTipo {
+  CREAZIONE
+  AGGIORNAMENTO
 }
 
 enum StatoArticolo {

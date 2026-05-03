@@ -63,9 +63,49 @@ export interface ArticoloDetailResponse {
   session: {
     categoria: string
     argomento: string
-    sito?: { wpSiteUrl: string | null } | null
+    tipo: string
+    contenutoOriginale: string | null
+    wpPostId: number | null
+    wpPostUrl: string | null
+    wpPostType: string | null
+    focusAggiornamento: string | null
+    sito?: { wpSiteUrl: string | null; wpUsername: string | null; wpAppPassword: string | null } | null
   }
   versioni: VersioneDetail[]
+}
+
+// GET /api/siti/[id]/posts
+export interface SitoPostsResponse {
+  posts: WpPostListItem[]
+}
+
+export interface WpPostListItem {
+  id: number
+  title: string
+  link: string
+  slug: string
+  excerpt: string
+  postType: string
+}
+
+// POST /api/aggiornamento
+export interface AggiornamentoRequestBody {
+  sitoId: string
+  wpPostId: number
+  wpPostUrl: string
+  wpPostTitle: string
+  wpPostType?: string
+  focus?: string
+}
+
+// POST /api/articles/[id]/apply-update
+export interface ApplyUpdateRequestBody {
+  versioneId: string
+}
+
+export interface ApplyUpdateResponse {
+  wpPostUrl: string
+  aggiornatoIl: string
 }
 
 export interface VersioneDetail {
@@ -78,6 +118,16 @@ export interface VersioneDetail {
   immagineUrl: string | null
   immagineCreditUrl: string | null
   punteggio: number | null
+}
+
+// POST /api/articles/[id]/revise
+export interface ReviseRequestBody {
+  versioneId: string
+  richiesta: string
+}
+
+export interface ReviseResponse {
+  versioneId: string
 }
 
 // PATCH /api/articles/[id]
