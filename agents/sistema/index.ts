@@ -1,6 +1,10 @@
-import { callClaudeJson } from '@/lib/claude-cli'
+import { callClaudeJson, tierLongform, thinkingLongform } from '@/lib/claude-cli'
 import { WordPressMcpClient } from '@/agents/publisher/mcp-client'
+import { costruisciIndice, classificaPerRilevanza } from '@/lib/text-match'
 import type { GenerationInput, ArticoloBozza } from '@/types/agents'
+
+/** Prodotti candidati mostrati al modello per ciascun componente richiesto. */
+const CANDIDATI_PER_COMPONENTE = 10
 
 interface SistemaPost {
   id: number
@@ -53,9 +57,31 @@ export async function runSistemaAgent(input: Omit<GenerationInput, 'toni'> & {
     await client.disconnect()
   }
 
-  const listaPost = posts
+  // Il catalogo può contare centinaia di prodotti, ma l'articolo ne cita uno per
+  // componente: spedirlo intero significherebbe pagare decine di migliaia di token
+  // di schede che non verranno mai scelte. Preselezioniamo per componente.
+  const indice = costruisciIndice(
+    posts,
+    (p) => p.id,
+    (p) => `${p.titolo} ${p.titolo} ${p.estratto}`
+  )
+
+  const selezionati = new Map<number, SistemaPost>()
+  for (const componente of input.sistemaCategorie) {
+    for (const p of classificaPerRilevanza(indice, `${componente} ${input.argomento}`, CANDIDATI_PER_COMPONENTE)) {
+      selezionati.set(p.id, p)
+    }
+  }
+
+  // Se la preselezione non trova nulla (titoli poco descrittivi, categorie vaghe)
+  // ripieghiamo sui primi prodotti del catalogo invece di lasciare il prompt vuoto.
+  const candidati = selezionati.size > 0 ? [...selezionati.values()] : posts.slice(0, 40)
+
+  const listaPost = candidati
     .map((p) => `ID:${p.id} | ${p.titolo} | ${p.url}\n  ${p.estratto}`)
     .join('\n')
+
+  console.log(`[sistema] catalogo ${posts.length} prodotti → ${candidati.length} candidati nel prompt`)
 
   const sitoBlock = input.sitoIstruzioni
     ? `\nLINEE GUIDA DEL SITO:\n${input.sitoIstruzioni}\n`
@@ -96,7 +122,12 @@ Rispondi SOLO con questo JSON (nessun markdown, nessun testo extra):
     corpo: string
     estratto: string
     tag: string[]
-  }>(prompt, { timeout: 5 * 60 * 1000 })
+  }>(prompt, {
+    tier: tierLongform(),
+    label: 'sistema',
+    timeout: 8 * 60 * 1000,
+    thinkingTokens: thinkingLongform(),
+  })
 
   return {
     versione: {

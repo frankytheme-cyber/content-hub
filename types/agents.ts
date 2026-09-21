@@ -30,6 +30,10 @@ export interface ResearchResult {
   puntiFondamentali: string[]
   keywordsCorrelate: string[]
   fonti: ResearchSource[]
+  /** Entità nominate citate dalle fonti: alimentano lo schema JSON-LD (`about`). */
+  entita?: string[]
+  /** Domande reali degli utenti: diventano gli H2 interrogativi e le FAQ. */
+  domandeUtenti?: string[]
 }
 
 export interface ResearchSource {
@@ -46,7 +50,7 @@ export interface GenerationInput {
   linkInterni: LinkInternoInput[]
   categoria: string
   argomento: string
-  toni: [string, string]
+  toni: string[]
   sitoIstruzioni?: string
 }
 
@@ -59,7 +63,7 @@ export interface ArticoloBozza {
 }
 
 export interface GenerationResult {
-  versioni: [ArticoloBozza, ArticoloBozza]
+  versioni: ArticoloBozza[]
 }
 
 // ─── Review Agent ────────────────────────────────────────────────────────────
@@ -90,6 +94,14 @@ export interface SeoInput {
   argomento: string
   categoria: string
   keywordsCorrelate: string[]
+  /** Domande reali degli utenti, usate per generare FAQ mirate. */
+  domandeUtenti?: string[]
+  /** Ricerca completa, per recuperare le entità quando il modello non le estrae. */
+  ricerca?: ResearchResult
+  /** URL del sito di destinazione: rende assoluti gli @id dello schema JSON-LD. */
+  siteUrl?: string
+  /** Immagine di copertina, inclusa nello schema come ImageObject. */
+  immagineUrl?: string
 }
 
 export interface SeoMetadata {
@@ -107,6 +119,17 @@ export interface SeoMetadata {
 export interface SeoResult {
   metadata: SeoMetadata
   corpoOttimizzato: string
+  /** Esito dei controlli SEO/GEO calcolati in locale. */
+  diagnosi?: DiagnosiSeoGeo
+  /** Correzioni automatiche e riparazioni applicate. */
+  avvisi?: string[]
+}
+
+export interface DiagnosiSeoGeo {
+  punteggio: number
+  parole: number
+  controlli: Array<{ nome: string; superato: boolean; dettaglio: string }>
+  mancanti: string[]
 }
 
 // ─── Image Agent ─────────────────────────────────────────────────────────────

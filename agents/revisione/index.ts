@@ -1,4 +1,4 @@
-import { callClaude } from '@/lib/claude-cli'
+import { callClaude, tierLongform, thinkingLongform } from '@/lib/claude-cli'
 
 interface RevisioneInput {
   titolo: string
@@ -63,6 +63,11 @@ Rispondi ESATTAMENTE in questo formato — nessun testo prima o dopo:
 [breve descrizione delle modifiche effettuate, opzionale]
 </NOTA>`
 
-  const text = await callClaude(prompt, { timeout: 5 * 60 * 1000 })
+  const text = await callClaude(prompt, {
+    tier: tierLongform(),
+    label: 'revisione-manuale',
+    timeout: 5 * 60 * 1000,
+    thinkingTokens: thinkingLongform(),
+  })
   return parseRisposta(text)
 }

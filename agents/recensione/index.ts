@@ -1,4 +1,4 @@
-import { callClaudeJson } from '@/lib/claude-cli'
+import { callClaudeJson, tierLongform, thinkingLongform } from '@/lib/claude-cli'
 import { buildRecensionePrompt } from './template'
 import type { ResearchResult, ArticoloBozza } from '@/types/agents'
 
@@ -25,7 +25,12 @@ export interface RecensioneResult {
 export async function runRecensioneAgent(input: RecensioneInput): Promise<RecensioneResult> {
   const prompt = buildRecensionePrompt(input)
 
-  const raw = await callClaudeJson<RecensioneRaw>(prompt, { timeout: 15 * 60 * 1000 })
+  const raw = await callClaudeJson<RecensioneRaw>(prompt, {
+    tier: tierLongform(),
+    label: 'recensione',
+    timeout: 15 * 60 * 1000,
+    thinkingTokens: thinkingLongform(),
+  })
 
   return {
     versione: {

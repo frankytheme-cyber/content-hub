@@ -1,4 +1,4 @@
-import { callClaude } from '@/lib/claude-cli'
+import { callClaude, tierLongform, thinkingLongform } from '@/lib/claude-cli'
 import type { AggiornamentoInput, ArticoloBozza } from '@/types/agents'
 
 function parseRisposta(text: string, titolo: string): ArticoloBozza {
@@ -136,6 +136,11 @@ export async function runAggiornamentoAgent(input: AggiornamentoInput): Promise<
     ? buildPromptBiografia(input)
     : buildPromptStandard(input)
 
-  const text = await callClaude(prompt, { timeout: 8 * 60 * 1000 })
+  const text = await callClaude(prompt, {
+    tier: tierLongform(),
+    label: `aggiornamento:${input.tipoArticolo ?? 'standard'}`,
+    timeout: 8 * 60 * 1000,
+    thinkingTokens: thinkingLongform(),
+  })
   return parseRisposta(text, input.titolo)
 }

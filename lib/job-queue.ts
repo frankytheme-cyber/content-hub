@@ -50,6 +50,20 @@ let worker: Worker | null = null
 export async function startWorker() {
   if (worker) return worker
 
+  // Recovery: i job rimasti IN_ESECUZIONE/IN_CODA da una sessione precedente sono orfani
+  const { prisma } = await import('./prisma')
+  const { count } = await prisma.job.updateMany({
+    where: { stato: { in: ['IN_ESECUZIONE', 'IN_CODA'] } },
+    data: { stato: 'FALLITO', errore: 'Job interrotto al riavvio del server.' },
+  })
+  if (count > 0) {
+    await prisma.session.updateMany({
+      where: { stato: { in: ['IN_CORSO', 'IN_ATTESA'] } },
+      data: { stato: 'FALLITA' },
+    })
+    console.log(`[Worker] Recuperati ${count} job orfani`)
+  }
+
   const connection = await getRedis()
   worker = new Worker(
     QUEUE_NAME,
@@ -103,6 +117,19 @@ let linkWorker: Worker | null = null
 
 export async function startInternalLinkingWorker() {
   if (linkWorker) return linkWorker
+
+  // Recovery: i job rimasti in_corso/in_coda da una sessione precedente sono orfani
+  // (il worker BullMQ è morto al riavvio del dev server). Li marchiamo come errore.
+  const { prisma } = await import('./prisma')
+  const { count } = await prisma.linkAnalysisJob.updateMany({
+    where: { stato: { in: ['in_corso', 'in_coda'] } },
+    data: {
+      stato: 'errore',
+      fase: 'errore',
+      errore: 'Job interrotto al riavvio del server. Avvia una nuova analisi.',
+    },
+  })
+  if (count > 0) console.log(`[LinkWorker] Recuperati ${count} job orfani`)
 
   const connection = await getRedis()
   linkWorker = new Worker(

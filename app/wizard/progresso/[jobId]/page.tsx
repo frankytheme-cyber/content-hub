@@ -8,10 +8,10 @@ import { CheckCircle2, XCircle, Loader2, RefreshCw } from 'lucide-react'
 
 const FASI: Record<string, { label: string; desc: string }> = {
   ricerca:      { label: 'Ricerca materiale',    desc: 'Analizzando fonti e raccogliendo dati...' },
-  generazione:  { label: 'Scrittura articoli',   desc: 'Generando due varianti di contenuto...' },
+  generazione:  { label: 'Scrittura articoli',   desc: 'Generando il contenuto...' },
   revisione:    { label: 'Revisione editoriale', desc: 'Verificando fatti e grammatica...' },
+  immagini:     { label: 'Ricerca immagine',     desc: 'Trovando la foto pertinente...' },
   seo:          { label: 'Ottimizzazione SEO',   desc: 'Affinando keyword e metadata GEO...' },
-  immagini:     { label: 'Ricerca immagine',     desc: 'Trovando la foto perfetta...' },
   salvataggio:  { label: 'Salvataggio',          desc: 'Archiviando il contenuto...' },
   recupero:     { label: 'Recupero articolo',    desc: 'Scaricando il contenuto da WordPress...' },
   aggiornamento:{ label: 'Aggiornamento',        desc: 'Generando il contenuto aggiornato...' },
@@ -19,8 +19,9 @@ const FASI: Record<string, { label: string; desc: string }> = {
   errore:       { label: 'Errore',               desc: '' },
 }
 
-const FASI_ORDER_CREAZIONE = ['ricerca', 'generazione', 'revisione', 'seo', 'immagini', 'salvataggio', 'completato']
-const FASI_ORDER_AGGIORNAMENTO = ['recupero', 'ricerca', 'aggiornamento', 'revisione', 'salvataggio', 'completato']
+// L'immagine viene cercata in parallelo alla revisione, quindi arriva prima del SEO.
+const FASI_ORDER_CREAZIONE = ['ricerca', 'generazione', 'revisione', 'immagini', 'seo', 'salvataggio', 'completato']
+const FASI_ORDER_AGGIORNAMENTO = ['recupero', 'ricerca', 'aggiornamento', 'revisione', 'seo', 'salvataggio', 'completato']
 
 export default function ProgressoPage() {
   const { jobId } = useParams<{ jobId: string }>()

@@ -1,7 +1,16 @@
 import { prisma } from '@/lib/prisma'
 import { emitJobEvent } from '@/lib/events'
+import { withUsageLedger, type UsageLedger } from '@/lib/claude-cli'
+import {
+  analizzaGeo,
+  applicaCorrezioni,
+  costruisciSchema,
+  estraiPrimoParagrafo,
+  normalizzaSlug,
+  validaSeoMetadata,
+} from '@/lib/seo-utils'
 import { runResearchAgent } from './research'
-import { runGenerationAgent } from './generation'
+import { runGenerationAgent, numeroVersioni } from './generation'
 import { runReviewAgent } from './review'
 import { runSeoAgent } from './seo'
 import { runImageAgent } from './image'
@@ -11,26 +20,39 @@ import { runBiografiaAgent } from './biografia'
 import { runAggiornamentoAgent } from './aggiornamento'
 import { WordPressMcpClient } from './publisher/mcp-client'
 import type { PipelineJobData } from '@/lib/job-queue'
-import type { ArticoloBozza, ResearchResult, ReviewCorrezione, ReviewResult, SeoResult } from '@/types/agents'
-import slugify from 'slugify'
+import type { ArticoloBozza, ImageResult, ResearchResult, ReviewResult, SeoResult } from '@/types/agents'
 
 function slug(testo: string): string {
-  return slugify(testo, { lower: true, strict: true, locale: 'it' })
+  return normalizzaSlug(testo)
 }
 
-function applicaCorrezioni(corpo: string, correzioni: ReviewCorrezione[]): string {
-  let result = corpo
-  for (const c of correzioni) {
-    const replaced = result.replace(c.originale, c.corretto)
-    if (replaced === result) {
-      console.warn(`[review] Correzione non applicata: "${c.originale.slice(0, 80)}"`)
-    }
-    result = replaced
+/** Applica le correzioni della revisione segnalando quelle non agganciate. */
+function applicaRevisione(corpo: string, revisione: ReviewResult): string {
+  const { corpo: risultato, applicate, fallite } = applicaCorrezioni(corpo, revisione.correzioni)
+
+  if (fallite.length > 0) {
+    console.warn(
+      `[review] ${applicate}/${revisione.correzioni.length} correzioni applicate. ` +
+      `Non agganciate: ${fallite.map((f) => `"${f.originale.slice(0, 60)}"`).join(' · ')}`
+    )
   }
-  return result
+
+  return risultato
 }
 
-export async function runPipeline(data: PipelineJobData) {
+function riepilogoCosti(ledger: UsageLedger): string {
+  const t = ledger.totale()
+  return `${t.chiamate} chiamate · ${t.inputTokens.toLocaleString('it-IT')} token in · ` +
+    `${t.outputTokens.toLocaleString('it-IT')} token out · $${t.costUsd.toFixed(3)}`
+}
+
+export function runPipeline(data: PipelineJobData) {
+  // Un registro per job: due pipeline concorrenti nello stesso worker non si
+  // mescolano i conteggi di token.
+  return withUsageLedger((ledger) => eseguiPipeline(data, ledger))
+}
+
+async function eseguiPipeline(data: PipelineJobData, ledger: UsageLedger) {
   const { sessionId, jobId, input } = data
 
   const emit = (fase: string, progresso: number, messaggio: string) =>
@@ -38,9 +60,10 @@ export async function runPipeline(data: PipelineJobData) {
 
   try {
     // Carica stato corrente per checkpoint
-    const [job, session] = await Promise.all([
+    const [job, session, sitoCorrente] = await Promise.all([
       prisma.job.findUniqueOrThrow({ where: { id: jobId } }),
       prisma.session.findUniqueOrThrow({ where: { id: sessionId } }),
+      input.sitoId ? prisma.sito.findUnique({ where: { id: input.sitoId } }) : Promise.resolve(null),
     ])
 
     await prisma.job.update({
@@ -97,7 +120,7 @@ export async function runPipeline(data: PipelineJobData) {
       include: { articolo: true },
     })
 
-    const checkpointCount = isRecensione || isSistema || isBiografia ? 1 : 2
+    const checkpointCount = isRecensione || isSistema || isBiografia ? 1 : numeroVersioni()
 
     if (versioniSalvate.length >= checkpointCount && !['ricerca', 'generazione'].includes(faseIniziale)) {
       versioni = versioniSalvate.map((v) => ({
@@ -134,10 +157,7 @@ export async function runPipeline(data: PipelineJobData) {
         extraMeta = { schemaJsonLd: bio.versione.schemaJsonLd, tag: bio.versione.tag }
         await emit('generazione', 50, 'Biografia musicale generata.')
       } else if (isSistema) {
-        const sito = input.sitoId
-          ? await prisma.sito.findUnique({ where: { id: input.sitoId } })
-          : null
-        if (!sito?.wpSiteUrl || !sito.wpUsername || !sito.wpAppPassword) {
+        if (!sitoCorrente?.wpSiteUrl || !sitoCorrente.wpUsername || !sitoCorrente.wpAppPassword) {
           throw new Error('Articolo sistema richiede credenziali WordPress configurate sul sito.')
         }
         const sis = await runSistemaAgent({
@@ -147,9 +167,9 @@ export async function runPipeline(data: PipelineJobData) {
           categoria: input.categoria,
           sitoIstruzioni: input.sitoIstruzioni,
           sistemaCategorie: input.sistemaCategorie ?? [],
-          siteUrl: sito.wpSiteUrl,
-          username: sito.wpUsername,
-          appPassword: sito.wpAppPassword,
+          siteUrl: sitoCorrente.wpSiteUrl,
+          username: sitoCorrente.wpUsername,
+          appPassword: sitoCorrente.wpAppPassword,
         })
         versioni = [sis.versione]
         extraMeta = { tag: sis.versione.tag }
@@ -160,10 +180,11 @@ export async function runPipeline(data: PipelineJobData) {
           linkInterni: input.linkInterni,
           argomento: input.argomento,
           categoria: input.categoria,
-          toni: ['autorevole e professionale', 'colloquiale e coinvolgente'],
+          sitoIstruzioni: input.sitoIstruzioni,
+          toni: [],
         })
         versioni = gen.versioni
-        await emit('generazione', 50, 'Due versioni dell\'articolo generate.')
+        await emit('generazione', 50, `${versioni.length === 1 ? 'Articolo generato' : `${versioni.length} versioni generate`}.`)
       }
     }
 
@@ -171,48 +192,86 @@ export async function runPipeline(data: PipelineJobData) {
     await prisma.job.update({ where: { id: jobId }, data: { fase: 'revisione' } })
     await emit('revisione', 52, 'Revisione fattuale e grammaticale...')
 
+    // L'immagine non dipende dalla revisione: cercarla adesso in parallelo toglie
+    // una fase dal percorso critico e rende l'URL disponibile allo schema JSON-LD.
+    const immaginePromise: Promise<ImageResult> = runImageAgent({
+      argomento: input.argomento,
+      categoria: input.categoria,
+      keywords: ricerca.keywordsCorrelate.slice(0, 5),
+    }).catch((err) => {
+      console.warn('[immagini] ricerca fallita:', err instanceof Error ? err.message : err)
+      return { url: '', previewUrl: '', fotografo: '', creditUrl: '', altText: input.argomento }
+    })
+
     const revisioni: ReviewResult[] = await Promise.all(
       versioni.map((v) => runReviewAgent({ bozza: v, fonti: ricerca.fonti }))
     )
 
     await emit('revisione', 68, 'Revisione completata.')
 
+    const immagine = await immaginePromise
+    await emit('immagini', 72, immagine.url ? 'Immagine trovata.' : 'Nessuna immagine pertinente trovata.')
+
     // ─── 4. SEO ─────────────────────────────────────────────────────────────
-    // Per le recensioni il SEO è già integrato nel template Gutenberg
-    let bozzePronto: ArticoloBozza[]
+    await prisma.job.update({ where: { id: jobId }, data: { fase: 'seo' } })
+    await emit('seo', 75, 'Ottimizzazione SEO e GEO...')
+
+    const bozzePronto: ArticoloBozza[] = versioni.map((v, i) => ({
+      ...v,
+      corpo: applicaRevisione(v.corpo, revisioni[i]),
+    }))
+
+    const siteUrl = sitoCorrente?.wpSiteUrl ?? undefined
     let seoResults: SeoResult[]
 
     if (isRecensione || isSistema || isBiografia) {
-      bozzePronto = versioni.map((v, i) => ({
-        ...v,
-        corpo: applicaCorrezioni(v.corpo, revisioni[i].correzioni),
-      }))
-      // SEO sintetico dalle info già presenti nella versione
-      seoResults = bozzePronto.map((b) => ({
-        corpoOttimizzato: b.corpo,
-        metadata: {
-          metaTitolo: b.titolo,
-          metaDescrizione: b.estratto,
-          slug: slugify(b.titolo, { lower: true, strict: true, locale: 'it' }),
-          keywordPrincipale: input.argomento,
-          keywordSecondarie: extraMeta.tag ?? b.tag ?? [],
-          geoHints: [],
-          schemaMarkup: extraMeta.schemaJsonLd ?? {},
-          ogTitolo: b.titolo,
-          ogDescrizione: b.estratto,
-        },
-      }))
+      // Questi template producono già la struttura editoriale completa: non
+      // serve un passaggio di riscrittura, ma i metadati vanno comunque
+      // normalizzati e lo schema costruito, invece di copiare titolo ed estratto.
+      seoResults = bozzePronto.map((b) => {
+        const tag = extraMeta.tag ?? b.tag ?? []
+        const { metadata } = validaSeoMetadata(
+          {
+            metaTitolo: b.titolo,
+            metaDescrizione: b.estratto,
+            keywordPrincipale: input.argomento,
+            keywordSecondarie: tag,
+            geoHints: ricerca.entita ?? [],
+          },
+          {
+            titolo: b.titolo,
+            estratto: b.estratto,
+            corpo: b.corpo,
+            argomento: input.argomento,
+            categoria: input.categoria,
+          }
+        )
+
+        // I template hi-fi producono già uno schema specifico (Review, Person):
+        // se c'è lo teniamo, altrimenti lo generiamo.
+        metadata.schemaMarkup = extraMeta.schemaJsonLd ?? costruisciSchema({
+          titolo: metadata.metaTitolo,
+          descrizione: metadata.metaDescrizione,
+          corpo: b.corpo,
+          categoria: input.categoria,
+          keywordPrincipale: metadata.keywordPrincipale,
+          keywordSecondarie: metadata.keywordSecondarie,
+          entita: ricerca.entita ?? [],
+          slug: metadata.slug,
+          siteUrl,
+          immagineUrl: immagine.url || undefined,
+        })
+
+        return {
+          metadata,
+          corpoOttimizzato: b.corpo,
+          diagnosi: analizzaGeo(b.corpo, metadata.keywordPrincipale),
+        }
+      })
+
       const tipoLabel = isSistema ? 'sistema' : isBiografia ? 'biografia' : 'recensione'
-      await emit('seo', 83, `SEO ${tipoLabel} completato.`)
+      await emit('seo', 90, `SEO ${tipoLabel} completato.`)
     } else {
-      await prisma.job.update({ where: { id: jobId }, data: { fase: 'seo' } })
-      await emit('seo', 70, 'Ottimizzazione SEO e GEO...')
-
-      bozzePronto = versioni.map((v, i) => ({
-        ...v,
-        corpo: applicaCorrezioni(v.corpo, revisioni[i].correzioni),
-      }))
-
       seoResults = await Promise.all(
         bozzePronto.map((b) =>
           runSeoAgent({
@@ -220,31 +279,24 @@ export async function runPipeline(data: PipelineJobData) {
             argomento: input.argomento,
             categoria: input.categoria,
             keywordsCorrelate: ricerca.keywordsCorrelate,
+            domandeUtenti: ricerca.domandeUtenti,
+            ricerca,
+            siteUrl,
+            immagineUrl: immagine.url || undefined,
           })
         )
       )
 
-      await emit('seo', 83, 'SEO e GEO completati.')
+      const punteggi = seoResults.map((s) => s.diagnosi?.punteggio ?? 0)
+      await emit('seo', 90, `SEO e GEO completati (punteggio GEO: ${punteggi.join(' / ')}).`)
     }
 
-    // ─── 5. Immagine ────────────────────────────────────────────────────────
-    await prisma.job.update({ where: { id: jobId }, data: { fase: 'immagini' } })
-    await emit('immagini', 85, 'Ricerca immagine...')
-
-    const immagine = await runImageAgent({
-      argomento: input.argomento,
-      categoria: input.categoria,
-      keywords: ricerca.keywordsCorrelate.slice(0, 5),
-    })
-
-    await emit('immagini', 93, 'Immagine trovata.')
-
-    // ─── 6. Salvataggio ─────────────────────────────────────────────────────
+    // ─── 5. Salvataggio ─────────────────────────────────────────────────────
     await prisma.job.update({ where: { id: jobId }, data: { fase: 'salvataggio' } })
     await emit('salvataggio', 95, 'Salvataggio articolo nel database...')
 
     const titoloArticolo = bozzePronto[0].titolo
-    let articoloSlug = slug(titoloArticolo)
+    let articoloSlug = seoResults[0].metadata.slug || slug(titoloArticolo)
 
     const esistente = await prisma.articolo.findUnique({ where: { slug: articoloSlug } })
     if (esistente) articoloSlug = `${articoloSlug}-${Date.now()}`
@@ -259,13 +311,23 @@ export async function runPipeline(data: PipelineJobData) {
             indice: i,
             tono: bozza.tono,
             corpo: seoResults[i].corpoOttimizzato,
-            noteRevisione: revisioni[i].correzioni.length > 0
-              ? revisioni[i].correzioni.map((c) => `[${c.tipo}] ${c.spiegazione}`).join('\n')
-              : null,
-            seoJson: seoResults[i].metadata as any,
+            noteRevisione: [
+              ...revisioni[i].correzioni.map((c) => `[${c.tipo}] ${c.spiegazione}`),
+              ...(seoResults[i].avvisi ?? []).map((a) => `[seo] ${a}`),
+              ...(seoResults[i].diagnosi?.mancanti ?? []).map((m) => `[geo] ${m}`),
+            ].join('\n') || null,
+            seoJson: {
+              ...seoResults[i].metadata,
+              altText: immagine.altText,
+              diagnosiGeo: seoResults[i].diagnosi,
+            } as any,
             immagineUrl: immagine.url || null,
             immagineCreditUrl: immagine.creditUrl || null,
-            punteggio: revisioni[i].punteggio,
+            // Punteggio combinato: qualità editoriale dal revisore, conformità
+            // SEO/GEO misurata in locale.
+            punteggio: Math.round(
+              revisioni[i].punteggio * 0.6 + (seoResults[i].diagnosi?.punteggio ?? 70) * 0.4
+            ),
           })),
         },
       },
@@ -279,7 +341,8 @@ export async function runPipeline(data: PipelineJobData) {
       }),
     ])
 
-    await emit('completato', 100, `Articolo "${titoloArticolo}" pronto.`)
+    console.log(`[pipeline] ${jobId} · ${riepilogoCosti(ledger)}`)
+    await emit('completato', 100, `Articolo "${titoloArticolo}" pronto. (${riepilogoCosti(ledger)})`)
   } catch (err) {
     const messaggio = err instanceof Error ? err.message : 'Errore sconosciuto'
 
@@ -293,7 +356,11 @@ export async function runPipeline(data: PipelineJobData) {
   }
 }
 
-export async function runAggiornamentoPipeline(data: PipelineJobData) {
+export function runAggiornamentoPipeline(data: PipelineJobData) {
+  return withUsageLedger((ledger) => eseguiAggiornamento(data, ledger))
+}
+
+async function eseguiAggiornamento(data: PipelineJobData, ledger: UsageLedger) {
   const { sessionId, jobId } = data
 
   const emit = (fase: string, progresso: number, messaggio: string) =>
@@ -403,17 +470,31 @@ export async function runAggiornamentoPipeline(data: PipelineJobData) {
     await emit('revisione', 68, 'Revisione fattuale e grammaticale...')
 
     const revisione = await runReviewAgent({ bozza, fonti: ricerca.fonti })
+    const corpoFinale = applicaRevisione(bozza.corpo, revisione)
 
-    const corpoFinale: string = revisione.correzioni.reduce((corpo, c) => {
-      const replaced = corpo.replace(c.originale, c.corretto)
-      return replaced
-    }, bozza.corpo)
+    await emit('revisione', 78, 'Revisione completata.')
 
-    await emit('revisione', 82, 'Revisione completata.')
+    // ─── 5. SEO ────────────────────────────────────────────────────────────────
+    // L'aggiornamento salvava `seoJson: {}`: l'articolo riscritto tornava su
+    // WordPress senza metadati né structured data aggiornati.
+    await prisma.job.update({ where: { id: jobId }, data: { fase: 'seo' } })
+    await emit('seo', 82, 'Aggiornamento metadati SEO e GEO...')
 
-    // ─── 5. Salvataggio ────────────────────────────────────────────────────────
+    const seo = await runSeoAgent({
+      bozza: { ...bozza, corpo: corpoFinale },
+      argomento: session.argomento,
+      categoria: session.categoria,
+      keywordsCorrelate: ricerca.keywordsCorrelate,
+      domandeUtenti: ricerca.domandeUtenti,
+      ricerca,
+      siteUrl: session.sito?.wpSiteUrl ?? undefined,
+    })
+
+    await emit('seo', 88, `SEO aggiornato (punteggio GEO: ${seo.diagnosi?.punteggio ?? '—'}).`)
+
+    // ─── 6. Salvataggio ────────────────────────────────────────────────────────
     await prisma.job.update({ where: { id: jobId }, data: { fase: 'salvataggio' } })
-    await emit('salvataggio', 90, 'Salvataggio proposta nel database...')
+    await emit('salvataggio', 93, 'Salvataggio proposta nel database...')
 
     const titoloArticolo = bozza.titolo
     let articoloSlug = slug(titoloArticolo) + '-aggiornamento'
@@ -430,12 +511,14 @@ export async function runAggiornamentoPipeline(data: PipelineJobData) {
           create: [{
             indice: 0,
             tono: 'aggiornato',
-            corpo: corpoFinale,
-            noteRevisione: revisione.correzioni.length > 0
-              ? revisione.correzioni.map((c) => `[${c.tipo}] ${c.spiegazione}`).join('\n')
-              : null,
-            seoJson: {},
-            punteggio: revisione.punteggio,
+            corpo: seo.corpoOttimizzato,
+            noteRevisione: [
+              ...revisione.correzioni.map((c) => `[${c.tipo}] ${c.spiegazione}`),
+              ...(seo.avvisi ?? []).map((a) => `[seo] ${a}`),
+              ...(seo.diagnosi?.mancanti ?? []).map((m) => `[geo] ${m}`),
+            ].join('\n') || null,
+            seoJson: { ...seo.metadata, diagnosiGeo: seo.diagnosi } as any,
+            punteggio: Math.round(revisione.punteggio * 0.6 + (seo.diagnosi?.punteggio ?? 70) * 0.4),
           }],
         },
       },
@@ -449,7 +532,8 @@ export async function runAggiornamentoPipeline(data: PipelineJobData) {
       }),
     ])
 
-    await emit('completato', 100, `Proposta di aggiornamento per "${titoloArticolo}" pronta.`)
+    console.log(`[aggiornamento] ${jobId} · ${riepilogoCosti(ledger)}`)
+    await emit('completato', 100, `Proposta di aggiornamento per "${titoloArticolo}" pronta. (${riepilogoCosti(ledger)})`)
   } catch (err) {
     const messaggio = err instanceof Error ? err.message : 'Errore sconosciuto'
 

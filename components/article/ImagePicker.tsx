@@ -27,7 +27,10 @@ export function ImagePicker({
     setCaricando(true)
     setCerca(true)
     try {
-      const params = new URLSearchParams({ q: argomento, category: categoria })
+      // `smart=1`: query tradotte in inglese e risultati ordinati per pertinenza,
+      // come nella pipeline. Cercare l'argomento italiano alla lettera su Pexels
+      // restituiva quasi sempre risultati casuali.
+      const params = new URLSearchParams({ q: argomento, category: categoria, smart: '1' })
       const res = await fetch(`/api/images/search?${params}`)
       const data: ImageSearchResponse = await res.json()
       setRisultati(data.immagini ?? [])

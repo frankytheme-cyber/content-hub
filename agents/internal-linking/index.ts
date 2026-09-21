@@ -2,10 +2,17 @@ import { prisma } from '@/lib/prisma'
 import { WordPressMcpClient } from '@/agents/publisher/mcp-client'
 import { callClaudeJson } from '@/lib/claude-cli'
 import { emitLinkAnalysisEvent } from '@/lib/events'
+import { costruisciIndice, classificaPerRilevanza, type IndiceLessicale } from '@/lib/text-match'
 import type { LinkAnalysisFase, LinkSuggestionDraft, WpPostSummary } from '@/types/agents'
 
 const BATCH_SIZE = 15
 const MAX_PAGES = 20 // safety: massimo 2000 post
+/** Caratteri di contenuto conservati per ogni post: il resto non entra mai nel prompt. */
+const MAX_CHAR_CONTENUTO = 1400
+/** Target proposti al modello per ogni post sorgente. */
+const CANDIDATI_PER_SORGENTE = 12
+/** Tetto alla tabella dei target di un batch. */
+const MAX_TARGET_PER_BATCH = 60
 
 function stripHtml(html: string): string {
   return html
@@ -47,17 +54,43 @@ async function aggiornaJob(jobId: string, data: {
   })
 }
 
-function costruisciPrompt(tutti: WpPostSummary[], batch: WpPostSummary[]): string {
-  // Lista globale compatta: solo ID, titolo, URL — niente estratti per tenere il prompt corto
-  const listaTarget = tutti
+/** I target lessicalmente più vicini alla sorgente, esclusa se stessa. */
+function candidatiPer(
+  sorgente: WpPostSummary,
+  indice: IndiceLessicale<WpPostSummary>,
+  limite: number
+): WpPostSummary[] {
+  return classificaPerRilevanza(
+    indice,
+    `${sorgente.titolo} ${sorgente.estratto} ${sorgente.contenuto}`,
+    limite,
+    (target) => target.id === sorgente.id
+  )
+}
+
+function costruisciPrompt(
+  batch: WpPostSummary[],
+  candidatiPerSorgente: Map<number, WpPostSummary[]>
+): string {
+  // La tabella dei target contiene solo l'unione dei candidati di questo batch,
+  // non l'intero sito.
+  const unione = new Map<number, WpPostSummary>()
+  for (const sorgente of batch) {
+    for (const c of candidatiPerSorgente.get(sorgente.id) ?? []) {
+      if (unione.size < MAX_TARGET_PER_BATCH) unione.set(c.id, c)
+    }
+  }
+
+  const listaTarget = [...unione.values()]
     .map((p) => `${p.id}|${p.titolo}|${p.link}`)
     .join('\n')
 
-  // Dettaglio sorgenti: titolo + prime 400 parole di testo pulito
   const sorgenti = batch
     .map((p) => {
-      const testo = p.contenuto.slice(0, 1200)
-      return `[ID:${p.id}] ${p.titolo}\nURL: ${p.link}\n${testo}`
+      const suggeriti = (candidatiPerSorgente.get(p.id) ?? [])
+        .map((c) => c.id)
+        .join(', ')
+      return `[ID:${p.id}] ${p.titolo}\nURL: ${p.link}\nTarget più affini: ${suggeriti || 'nessuno'}\n${p.contenuto.slice(0, MAX_CHAR_CONTENUTO)}`
     })
     .join('\n\n---\n\n')
 
@@ -71,9 +104,13 @@ ${sorgenti}
 
 ISTRUZIONI:
 - Per ogni post sorgente proponi 1-3 link verso target semanticamente correlati.
-- anchorText: testo già presente nel contenuto del post sorgente (non inventare frasi nuove).
+- "Target più affini" è una preselezione lessicale: verifica che il legame abbia davvero senso
+  per chi legge e scarta i target fuori tema, anche se suggeriti.
+- anchorText: testo GIÀ PRESENTE nel contenuto del post sorgente, copiato alla lettera
+  (non inventare frasi nuove, non modificare la punteggiatura).
 - contesto: copia esatta della frase del post sorgente che contiene l'anchorText (max 200 caratteri).
-- Non proporre self-link. Non linkare argomenti irrilevanti.
+- Preferisci anchor descrittivi di 2-5 parole. Mai "clicca qui" o "questo articolo".
+- Non proporre self-link. Meglio nessun link che un link irrilevante.
 
 Rispondi SOLO con JSON valido, senza markdown, senza spiegazioni:
 [{"fontePostId":123,"targetPostId":456,"anchorText":"testo","contesto":"frase esatta dal testo","motivazione":"perché questo link aiuta la SEO"}]
@@ -120,8 +157,10 @@ export async function runInternalLinkingJob(args: { jobId: string; sitoId: strin
           slug: p.slug,
           link: p.link,
           titolo: stripHtml(p.title.rendered),
-          estratto: stripHtml(p.excerpt.rendered),
-          contenuto: stripHtml(p.content.rendered),
+          estratto: stripHtml(p.excerpt.rendered).slice(0, 400),
+          // Troncato subito: del contenuto integrale non se ne fa nulla e su
+          // siti grandi tenerlo in memoria per ogni post costa centinaia di MB.
+          contenuto: stripHtml(p.content.rendered).slice(0, MAX_CHAR_CONTENUTO),
         })
       }
       page++
@@ -148,16 +187,37 @@ export async function runInternalLinkingJob(args: { jobId: string; sitoId: strin
     // ── Fase 2: analisi a batch
     await aggiornaJob(jobId, { fase: 'analisi', progresso: 35, totalePost: tutti.length, messaggio: 'Avvio analisi semantica…' })
 
+    // Il titolo pesa doppio: è il segnale più affidabile del tema di un post.
+    const indice = costruisciIndice(
+      tutti,
+      (p) => p.id,
+      (p) => `${p.titolo} ${p.titolo} ${p.estratto}`
+    )
     const draftDeduplicato = new Map<string, LinkSuggestionDraft>()
     let processati = 0
 
     for (let i = 0; i < tutti.length; i += BATCH_SIZE) {
       const batch = tutti.slice(i, i + BATCH_SIZE)
-      const prompt = costruisciPrompt(tutti, batch)
+
+      const candidatiPerSorgente = new Map<number, WpPostSummary[]>(
+        batch.map((p) => [p.id, candidatiPer(p, indice, CANDIDATI_PER_SORGENTE)])
+      )
+
+      // Un batch i cui post non hanno alcun target affine non merita una chiamata.
+      if ([...candidatiPerSorgente.values()].every((c) => c.length === 0)) {
+        processati = Math.min(tutti.length, i + batch.length)
+        continue
+      }
+
+      const prompt = costruisciPrompt(batch, candidatiPerSorgente)
 
       let suggerimenti: LinkSuggestionDraft[] = []
       try {
-        suggerimenti = await callClaudeJson<LinkSuggestionDraft[]>(prompt, { timeout: 8 * 60 * 1000 })
+        suggerimenti = await callClaudeJson<LinkSuggestionDraft[]>(prompt, {
+          tier: 'standard',
+          label: `internal-linking:${i}`,
+          timeout: 8 * 60 * 1000,
+        })
         console.log(`[internal-linking] batch ${i}: ${suggerimenti.length} suggerimenti`)
       } catch (e) {
         console.error(`[internal-linking] batch ${i} ERRORE:`, e instanceof Error ? e.message : e)

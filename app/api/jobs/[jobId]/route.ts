@@ -7,9 +7,11 @@ const PROGRESSO_PER_FASE: Record<string, number> = {
   ricerca: 20,
   generazione: 50,
   revisione: 68,
-  seo: 83,
-  immagini: 93,
+  immagini: 72,
+  seo: 90,
   salvataggio: 95,
+  recupero: 10,
+  aggiornamento: 65,
   completato: 100,
   errore: 0,
 }

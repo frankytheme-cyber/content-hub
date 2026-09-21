@@ -1,4 +1,4 @@
-import { callClaudeJson } from '@/lib/claude-cli'
+import { callClaudeJson, tierLongform, thinkingLongform } from '@/lib/claude-cli'
 import { buildBiografiaPrompt } from './template'
 import type { ResearchResult, ArticoloBozza, LinkInternoInput } from '@/types/agents'
 
@@ -25,7 +25,12 @@ export interface BiografiaResult {
 export async function runBiografiaAgent(input: BiografiaInput): Promise<BiografiaResult> {
   const prompt = buildBiografiaPrompt(input)
 
-  const raw = await callClaudeJson<BiografiaRaw>(prompt, { timeout: 15 * 60 * 1000 })
+  const raw = await callClaudeJson<BiografiaRaw>(prompt, {
+    tier: tierLongform(),
+    label: 'biografia',
+    timeout: 15 * 60 * 1000,
+    thinkingTokens: thinkingLongform(),
+  })
 
   return {
     versione: {
