@@ -1,0 +1,73 @@
+[SETUP 10/13] template recensione 1/2
+
+cat > ~/progetti/pulashock/template/recensione-gutenberg.html <<'FINE'
+<!-- wp:group {"className":"review-summary-box"} -->
+<div class="wp-block-group review-summary-box">
+
+<!-- wp:paragraph -->
+<p><strong>Voto:</strong> [VOTO]/5</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Target ideale:</strong> [TARGET_IDEALE]</p>
+<!-- /wp:paragraph -->
+
+</div>
+<!-- /wp:group -->
+
+<!-- wp:paragraph -->
+<p>[INTRO_P1 — contesto prodotto con keyword principale entro le prime 100 parole]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[INTRO_P2 — perché vale la pena leggere questa recensione]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[INTRO_P3 — cosa troverà il lettore]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:buttons {"contentJustification":"left","className":"amazon-buttons"} -->
+<div class="wp-block-buttons is-content-justification-left amazon-buttons"><!-- wp:button {"borderRadius":2,"style":{"color":{"background":"#dd3333","text":"#fffffa"}}} -->
+<div class="wp-block-button"><a class="wp-block-button__link has-text-color has-background" href="[LINK_AMAZON]" style="border-radius:2px;background-color:#dd3333;color:#fffffa" target="_blank" rel="noreferrer noopener">Vedi il prezzo su Amazon</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+
+<!-- wp:spacer {"height":20} -->
+<div style="height:20px" aria-hidden="true" class="wp-block-spacer"></div>
+<!-- /wp:spacer -->
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="indice">Indice</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list">
+  <li><a href="#caratteristiche-tecniche">Caratteristiche tecniche</a></li>
+  <li><a href="#qualita-audio">Qualità audio e performance</a></li>
+  <li><a href="#valutazioni-amazon">Valutazioni Amazon</a></li>
+  <li><a href="#pro-e-contro">Pro e contro</a></li>
+  <li><a href="#per-chi-e-consigliato">Per chi è consigliato</a></li>
+  <li><a href="#verdetto-finale">Verdetto finale</a></li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="caratteristiche-tecniche">Caratteristiche tecniche</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table {"hasFixedLayout":true,"className":"table-review"} -->
+<figure class="wp-block-table table-review"><table class="has-fixed-layout"><thead><tr><th>Specifica</th><th>Valore</th></tr></thead><tbody>
+<tr><td>Potenza</td><td>[SPEC_POTENZA]</td></tr>
+<tr><td>Ingressi</td><td>[SPEC_INGRESSI]</td></tr>
+<tr><td>Uscite</td><td>[SPEC_USCITE]</td></tr>
+<tr><td>DAC</td><td>[SPEC_DAC]</td></tr>
+<tr><td>Dimensioni</td><td>[SPEC_DIMENSIONI]</td></tr>
+<tr><td>Peso</td><td>[SPEC_PESO]</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>[CARATTERISTICHE_TESTO — 2-3 paragrafi che commentano le specifiche tecniche e il loro significato pratico]</p>
+<!-- /wp:paragraph -->
+FINE

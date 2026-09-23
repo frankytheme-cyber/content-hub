@@ -1,0 +1,42 @@
+# Modulo: recensione prodotto
+
+Richiede il campo `amazon`. Output in **blocchi Gutenberg**, non Markdown.
+
+Il template sta in `../template/recensione-gutenberg.html`. Va compilato esattamente
+com'è: è codice WordPress, non una traccia.
+
+## Regole di compilazione
+
+1. Sostituisci tutti i segnaposto fra parentesi quadre in MAIUSCOLO con contenuto reale
+   basato sulla ricerca.
+2. Sostituisci **entrambe** le occorrenze di `[LINK_AMAZON]` con l'URL dell'ordine.
+3. Non modificare mai gli attributi dei blocchi: `className`, `style`, `contentJustification`,
+   `borderRadius`, gli `id` degli heading e gli href interni dell'indice.
+4. Non aggiungere blocchi non presenti nel template e non toglierne.
+5. Ogni link esterno nel testo deve avere `target="_blank" rel="noreferrer noopener"`.
+6. La keyword principale deve comparire entro le prime 100 parole dell'introduzione.
+7. `[VOTO]` — da 1 a 5, coerente con quello che scrivi nel verdetto finale.
+8. Pro: minimo 4, massimo 5. Contro: minimo 2, massimo 3. Ogni voce con una breve
+   spiegazione, non una parola secca.
+9. Specifiche tecniche: se un dato non è disponibile scrivi `N/D`. Non stimarlo.
+10. `[AMAZON_RATING]` e `[AMAZON_SINTESI]` — usa le recensioni reali trovate in ricerca.
+    Se non ne hai, dichiaralo e lascia il blocco fuori invece di inventare una media.
+
+## Deroghe alla struttura standard
+
+Non si applicano "Punti chiave", "Domande frequenti" né il conteggio parole:
+la struttura editoriale è quella del template. Restano validi il tono del progetto,
+le regole GEO sui dati verificabili e il divieto di affermazioni non supportate.
+
+## Schema JSON-LD da produrre in `meta.json`
+
+```json
+{"@context":"https://schema.org","@graph":[
+{"@type":"Product","name":"[nome prodotto]","brand":{"@type":"Brand","name":"[brand]"},
+ "offers":{"@type":"Offer","url":"[LINK_AMAZON]","priceCurrency":"EUR",
+ "availability":"https://schema.org/InStock"}},
+{"@type":"Review","itemReviewed":{"@type":"Product","name":"[nome prodotto]"},
+ "reviewRating":{"@type":"Rating","ratingValue":"[voto]","bestRating":"5"},
+ "author":{"@type":"Organization","name":"Pulashock.it"},
+ "reviewBody":"[2-3 frasi dal verdetto finale]"}]}
+```

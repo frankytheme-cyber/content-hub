@@ -1,0 +1,51 @@
+# Progetti editoriali
+
+Radice di lavoro per i progetti di contenuto gestiti da Hermes su questo server.
+Ogni progetto è una cartella autonoma. Le regole valide per tutti stanno in `_comune/`.
+
+## Struttura
+
+```
+~/progetti/
+├── INDICE.md              questo file
+├── _comune/               regole condivise da tutti i progetti
+│   ├── 00-pipeline.md     le cinque fasi di lavorazione
+│   ├── 01-seo-geo.md      checklist GEO, punteggi, metadati
+│   └── 02-consegna.md     formato di consegna e pubblicazione
+└── <progetto>/
+    ├── PROGETTO.md        identità, tono, categorie — il file d'ingresso
+    ├── moduli/            un file per tipo di contenuto
+    ├── template/          template esatti da compilare
+    ├── risorse/           cataloghi, liste di link, materiale di supporto
+    ├── segreti/           credenziali, mai in git, permessi 700
+    └── articoli/          output, una cartella per articolo
+```
+
+## Progetti attivi
+
+| Cartella | Sito | Ambito |
+|---|---|---|
+| `pulashock/` | pulashock.it | Hi-fi, audio, musica, libri sull'ascolto |
+
+## Come si lavora
+
+Quando ricevi un comando che nomina un progetto:
+
+1. Leggi `_comune/00-pipeline.md`, `_comune/01-seo-geo.md`, `_comune/02-consegna.md`.
+2. Leggi `<progetto>/PROGETTO.md`.
+3. Leggi `<progetto>/moduli/<tipo>.md` per il tipo richiesto, e il template che quel modulo indica.
+4. Esegui le cinque fasi della pipeline.
+5. Salva il risultato in `<progetto>/articoli/<AAAA-MM-GG>-<slug>/`.
+
+Rileggi sempre i file: sono la fonte di verità, non quello che ricordi di una conversazione precedente.
+Se un file contraddice un messaggio più vecchio, vince il file.
+
+## Aggiungere un progetto
+
+```
+mkdir -p ~/progetti/<nome>/{moduli,template,risorse,segreti,articoli}
+chmod 700 ~/progetti/<nome>/segreti
+```
+
+Poi scrivi `PROGETTO.md` sul modello di quello di `pulashock/` e aggiungi una riga alla tabella qui sopra.
+Le regole in `_comune/` valgono automaticamente: non vanno duplicate dentro il progetto.

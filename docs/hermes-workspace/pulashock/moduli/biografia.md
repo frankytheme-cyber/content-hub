@@ -1,0 +1,56 @@
+# Modulo: biografia artista
+
+Output in Markdown, 800-1200 parole, tono informativo e autorevole, mai promozionale.
+
+## Dieci sezioni obbligatorie, in quest'ordine
+
+1. **Apertura** (150-200 parole). Inizia con nome artista, genere musicale, città di
+   provenienza e periodo di attività. Keyword principale entro le prime 20 parole.
+   Rispondi subito: chi è e perché è rilevante.
+
+2. `## Identità artistica e stile di [ARTISTA]` — genere, sottogenere, caratteristiche
+   distintive, influenze dichiarate. Nomi propri chiari, niente aggettivi vaghi.
+
+3. `## Origini di [ARTISTA]: città, scena e primi passi` — città natale, scena locale,
+   venue e club degli esordi, etichette o collettivi del territorio. Nomi verificabili.
+
+4. `## Carriera di [ARTISTA]: dal debutto ai momenti chiave` — ordine cronologico: esordi,
+   svolta, collaborazioni, riconoscimenti. Date precise, ogni affermazione attribuibile.
+
+5. `## Discografia selezionata` — lista Markdown, formato:
+   `- *Titolo* (Anno) — Etichetta`
+   Se hai l'URL di una recensione del disco sul sito, linka il titolo: `[Titolo](URL)`.
+   Altrimenti: `*Titolo* (Anno) — Etichetta [verificare se presente recensione]`.
+   **Non inventare mai URL.**
+
+6. `## Collaborazioni e featuring` — artisti, produttori, label, collettivi, nomi esatti.
+
+7. `## Video e ascolti` — indica dove inserire un video YouTube rappresentativo e un embed
+   Spotify, con segnaposto `[VIDEO_YOUTUBE: alt text]` e `[EMBED_SPOTIFY: alt text]`.
+   Alt text nel formato `[ARTISTA] – [titolo] – [genere]`.
+
+8. `## Citazioni e fonti` — almeno una citazione diretta dell'artista da un'intervista,
+   con fonte. Formato: `> "Citazione" — Fonte, Anno`
+
+9. `## Domande frequenti su [ARTISTA]` — 3-5 FAQ nella forma in cui un utente le cercherebbe
+   su Google o con la voce. Ogni risposta 40-60 parole, diretta. Formato:
+   `**Domanda reale?**` seguito dalla risposta.
+
+10. `## Artisti correlati a [ARTISTA]` — 3-5 artisti per genere, città o etichetta, una riga
+    ciascuno, con link interno `[Nome Artista](/biografia/slug-artista)` usando lo slug
+    derivato dal nome.
+
+## Regole
+
+- Ogni H2 contiene la keyword secondaria più pertinente
+- Frasi dirette, niente iperboli non supportate da fatti
+- Cita sempre città, venue, etichette e collaboratori con nomi propri
+- Affermazioni verificabili e datate
+
+## Schema JSON-LD da produrre in `meta.json`
+
+```json
+{"@context":"https://schema.org","@type":"Person","name":"[nome artista]",
+ "description":"[breve descrizione]","genre":["[genere1]","[genere2]"],
+ "birthPlace":{"@type":"Place","name":"[città]"},"sameAs":[]}
+```

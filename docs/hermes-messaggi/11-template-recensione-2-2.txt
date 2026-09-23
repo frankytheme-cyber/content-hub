@@ -1,0 +1,83 @@
+[SETUP 11/13] template recensione 2/2
+
+cat >> ~/progetti/pulashock/template/recensione-gutenberg.html <<'FINE'
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="qualita-audio">Qualità audio e performance</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>[QUALITA_P1 — descrizione della qualità sonora: timbrica, dettaglio, soundstage]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[QUALITA_P2 — punti di forza nell'ascolto con esempi di generi musicali]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[QUALITA_P3 — confronto con la fascia di prezzo e conclusioni sull'audio]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="valutazioni-amazon">Cosa dicono gli utenti: Valutazioni Amazon</h2>
+<!-- /wp:heading -->
+
+<!-- wp:group {"style":{"border":{"radius":"8px","width":"1px"},"spacing":{"padding":{"top":"20px","bottom":"20px","left":"20px","right":"20px"}}},"className":"amazon-ratings-box has-border-color has-cyan-bluish-gray-border-color"} -->
+<div class="wp-block-group amazon-ratings-box has-border-color has-cyan-bluish-gray-border-color" style="border-radius:8px;padding-top:20px;padding-right:20px;padding-bottom:20px;padding-left:20px"><div class="wp-block-group__inner-container">
+<!-- wp:paragraph -->
+<p><strong>Media recensioni:</strong> ⭐ [AMAZON_RATING] su 5</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[AMAZON_SINTESI — sintesi di 2-3 righe basata sulle recensioni reali: cosa apprezzano di più gli utenti e quali sono le lamentele comuni]</p>
+<!-- /wp:paragraph --></div></div>
+<!-- /wp:group -->
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="pro-e-contro">Pro e contro</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table {"hasFixedLayout":true,"className":"table-review"} -->
+<figure class="wp-block-table table-review"><table class="has-fixed-layout"><thead><tr><th>Pro ✅</th><th>Contro ❌</th></tr></thead><tbody>
+<tr><td>[PRO_1]</td><td>[CONTRO_1]</td></tr>
+<tr><td>[PRO_2]</td><td>[CONTRO_2]</td></tr>
+<tr><td>[PRO_3]</td><td>[CONTRO_3_O_VUOTO]</td></tr>
+<tr><td>[PRO_4]</td><td></td></tr>
+<tr><td>[PRO_5_O_VUOTO]</td><td></td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="per-chi-e-consigliato">Per chi è consigliato</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>[PER_CHI_P1 — profilo dell'acquirente ideale: esperienza, budget, esigenze d'ascolto]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[PER_CHI_P2 — scenari d'uso specifici e abbinamenti consigliati con altri componenti]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"className":"wp-block-heading"} -->
+<h2 class="wp-block-heading mt-30" id="verdetto-finale">Verdetto finale</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>[VERDETTO_P1 — sintesi complessiva del prodotto]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>[VERDETTO_P2 — rapporto qualità/prezzo e raccomandazione finale]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:buttons {"contentJustification":"left","className":"amazon-buttons"} -->
+<div class="wp-block-buttons is-content-justification-left amazon-buttons"><!-- wp:button {"borderRadius":2,"style":{"color":{"background":"#dd3333","text":"#fffffa"}}} -->
+<div class="wp-block-button"><a class="wp-block-button__link has-text-color has-background" href="[LINK_AMAZON]" style="border-radius:2px;background-color:#dd3333;color:#fffffa" target="_blank" rel="noreferrer noopener">Vedi il prezzo su Amazon</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+
+<!-- wp:spacer {"height":20} -->
+<div style="height:20px" aria-hidden="true" class="wp-block-spacer"></div>
+<!-- /wp:spacer -->
+FINE

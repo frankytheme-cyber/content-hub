@@ -1,0 +1,59 @@
+# Consegna e pubblicazione
+
+## Dove si salva
+
+Ogni contenuto va in una cartella sotto il progetto:
+
+```
+<progetto>/articoli/<AAAA-MM-GG>-<slug>/
+├── ricerca.json      output della fase 1
+├── articolo.md       corpo finale (o .html se il modulo usa un template Gutenberg)
+├── meta.json         metadati SEO + schema JSON-LD
+└── rapporto.md       punteggi, correzioni applicate, controlli non superati, fonti
+```
+
+La data è quella di generazione. Lo slug è quello dei metadati.
+Non sovrascrivere una cartella esistente: se c'è già, aggiungi `-2`, `-3` e così via.
+
+## Cosa mandare in chat
+
+In quest'ordine, sempre:
+
+1. **Rapporto** — titolo, i tre punteggi, i controlli GEO non superati, le correzioni
+   applicate in revisione, l'elenco delle fonti usate, e il percorso della cartella salvata.
+2. **Il corpo dell'articolo come allegato**, non come messaggio. Un articolo da 1200 parole
+   spezzato in tre messaggi è illeggibile e si perde nella cronologia.
+3. **I metadati**, in un blocco JSON:
+
+```json
+{
+  "metaTitolo": "", "metaDescrizione": "", "keywordPrincipale": "",
+  "keywordSecondarie": [], "entita": [], "slug": "",
+  "ogTitolo": "", "ogDescrizione": "", "altText": "",
+  "tag": [], "schemaJsonLd": {}
+}
+```
+
+Se qualcosa deve comunque andare in un messaggio di testo e supera il limite di Telegram,
+spezzalo su confini di riga e numera i pezzi. Non riassumere mai per farlo stare dentro.
+
+## Immagine di copertina
+
+Proponi 3 query in inglese per cercarla su una banca immagini, coerenti con argomento e
+categoria. Se hai modo di cercarla, riporta URL e credito dell'autore.
+
+## Pubblicazione su WordPress
+
+Solo se il progetto ha le credenziali in `segreti/` e solo su mia richiesta esplicita.
+Regole fisse, senza eccezioni:
+
+- **Chiedi conferma prima di ogni scrittura sul sito.** Mostra titolo, slug, stato e tag
+  che stai per usare, e aspetta un sì.
+- **Pubblica come bozza**, mai direttamente pubblicato, salvo mia istruzione contraria
+  nello stesso messaggio.
+- Usa `slug` ed `excerpt` dai metadati, e al massimo 6 tag presi da `keywordSecondarie`.
+- Se il corpo è Markdown convertilo in blocchi Gutenberg; se è già Gutenberg lascialo
+  intatto byte per byte.
+- Dopo la pubblicazione riporta l'URL del post e salva l'ID in `meta.json`.
+
+Non leggere né stampare mai il contenuto di `segreti/` in chat.

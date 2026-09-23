@@ -1,0 +1,56 @@
+[SETUP 12/13] risorse + segreti
+
+cat > ~/progetti/pulashock/risorse/link-interni.md <<'FINE'
+# Catalogo link interni
+
+Elenco degli URL del sito da usare per i link interni e, nel modulo `sistema`,
+come catalogo prodotti fra cui scegliere.
+
+Formato di una riga: `titolo esatto | url | categoria | breve descrizione`
+
+Finché questo file è vuoto:
+
+- nel modulo `standard` e `biografia`, usa solo i link passati nell'ordine
+- nel modulo `sistema`, chiedi l'elenco dei prodotti prima di scrivere
+
+**Non inventare mai URL di pulashock.it.** Un link inventato è un 404 pubblicato.
+
+## Come popolarlo
+
+Dall'API REST pubblica del sito:
+
+```
+curl -s 'https://www.pulashock.it/wp-json/wp/v2/posts?per_page=100&_fields=title,link' \
+  | jq -r '.[] | "\(.title.rendered) | \(.link)"'
+```
+
+Ripeti aumentando `page` finché la risposta non è vuota, e per gli altri post type
+(`recensioni`, `biografie`, …) se esistono.
+
+---
+
+<!-- righe del catalogo da qui in giù -->
+FINE
+
+cat > ~/progetti/pulashock/segreti/wordpress.env.esempio <<'FINE'
+# Copia questo file in wordpress.env e riempilo.
+# wordpress.env non va mai letto in chat, né messo in git, né stampato nei log.
+#
+#   cp wordpress.env.esempio wordpress.env
+#   chmod 600 wordpress.env
+#
+# La password applicativa si genera in WordPress:
+# Utenti → Profilo → Password per applicazioni.
+#
+# LE VIRGOLETTE SERVONO. WordPress mostra la password in sei gruppi separati da
+# spazi. Senza virgolette, `source wordpress.env` interpreta il secondo gruppo
+# come un comando da eseguire e lascia la variabile vuota, con un errore facile
+# da non notare.
+#
+# In alternativa scrivila tutta attaccata, senza spazi: WordPress li ignora
+# quando autentica, e un valore senza spazi non ha bisogno di virgolette.
+
+WP_SITE_URL="https://www.pulashock.it"
+WP_USERNAME=""
+WP_APP_PASSWORD=""
+FINE

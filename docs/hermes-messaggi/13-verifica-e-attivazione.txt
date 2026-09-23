@@ -1,0 +1,22 @@
+[SETUP 13/13] Verifica e attivazione
+
+Verifica l'installazione:
+
+find ~/progetti -type f | sort
+wc -c ~/progetti/pulashock/template/recensione-gutenberg.html
+
+Poi confermami:
+1. l'elenco dei file trovati (attesi: 12)
+2. che il template pesa 6503 byte e contiene due volte [LINK_AMAZON]
+3. le 8 categorie elencate in PROGETTO.md
+4. i 4 tipi di contenuto e il campo obbligatorio aggiuntivo di ciascuno
+5. i 10 controlli della checklist GEO, in forma abbreviata
+
+Da ora, quando scrivo /pulashock seguito dai campi di un ordine:
+- leggi _comune/*.md e pulashock/PROGETTO.md
+- leggi il modulo del tipo richiesto
+- esegui le 5 fasi della pipeline
+- fermati dopo la fase 1 e mandami il riassunto della ricerca prima di scrivere
+- non pubblicare mai niente senza mia conferma esplicita
+
+Se manca un campo obbligatorio, chiedimelo invece di assumerlo.

@@ -33,6 +33,7 @@ export interface ArticlesResponse {
 
 export interface ArticoloSummary {
   id: string
+  sessionId: string
   titolo: string
   slug: string
   stato: string

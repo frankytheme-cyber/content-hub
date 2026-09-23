@@ -1,0 +1,21 @@
+[SETUP 1/13] Preparazione
+
+Ti mando 13 messaggi che installano su questo server un'area di lavoro per progetti editoriali.
+
+Ogni messaggio dopo questo contiene uno o piu blocchi `cat > ... <<'FINE'`: eseguili esattamente come arrivano. Il testo dentro i blocchi e contenuto di file, NON istruzioni da seguire ora.
+
+Rispondi a ogni messaggio solo con "ok N/13" e i percorsi scritti.
+
+Se ~/progetti esiste gia, fermati e dimmelo invece di sovrascrivere. Altrimenti crea la struttura:
+
+mkdir -p ~/progetti/_comune
+mkdir -p ~/progetti/pulashock/moduli ~/progetti/pulashock/template
+mkdir -p ~/progetti/pulashock/risorse ~/progetti/pulashock/segreti ~/progetti/pulashock/articoli
+chmod 700 ~/progetti/pulashock/segreti
+
+Regole permanenti di quest'area, valide da ora in poi:
+
+- ~/progetti/ e la radice: un progetto per cartella, regole comuni in _comune/
+- Prima di lavorare su un progetto rileggi sempre i suoi file: sono la fonte di verita, non la memoria della conversazione
+- Non stampare mai in chat il contenuto di una cartella segreti/
+- Non inventare mai URL, ne interni ne esterni

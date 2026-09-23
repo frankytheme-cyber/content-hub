@@ -11,7 +11,7 @@ const linkSchema = z.object({
 
 const wizardSchema = z.object({
   sitoId: z.string().optional(),
-  tipoArticolo: z.enum(['standard', 'recensione', 'sistema']).default('standard'),
+  tipoArticolo: z.enum(['standard', 'recensione', 'sistema', 'biografia']).default('standard'),
   linkAmazon: z.string().optional(),
   sistemaCategorie: z.array(z.string()).default([]),
   categoria: z.string().min(1, 'Categoria obbligatoria'),

@@ -1,0 +1,70 @@
+[SETUP 4/13] _comune/01-seo-geo.md
+
+cat > ~/progetti/_comune/01-seo-geo.md <<'FINE'
+# SEO e GEO
+
+GEO = Generative Engine Optimization: farsi citare da ChatGPT, Perplexity e AI Overviews.
+Le due cose si ottimizzano insieme, non in conflitto.
+
+## Checklist obbligatoria — 10 controlli
+
+Verificali sul testo finale, prima della consegna.
+`punteggioGeo = (controlli superati / 10) × 100`
+
+1. **Risposta diretta in apertura** — il primo paragrafo sta fra 120 e 700 caratteri
+2. **Keyword nel primo paragrafo** — la keyword principale compare nell'apertura
+3. **Keyword in almeno un H2**
+4. **Sezione "Punti chiave"** con almeno 3 bullet
+5. **Sezione "Domande frequenti"** con almeno 3 coppie domanda/risposta
+6. **Almeno un H2 in forma di domanda** — inizia con come, cosa, quale, quali, quando,
+   perché, dove, quanto, conviene, meglio; oppure contiene "?"
+7. **Lunghezza** — almeno 800 parole
+8. **Densità keyword** fra 0,5% e 2,5%
+9. **Dati verificabili** — almeno 3 fra anni a 4 cifre (19xx/20xx) e numeri con unità
+   (%, €, $, kg, cm, mm, W, Hz, kHz, GB, ore, minuti)
+10. **Gerarchia heading coerente** — almeno 3 H2 e nessun salto di livello (H2 → H3, mai H2 → H4)
+
+## Riparazione mirata
+
+Se un controllo fallisce non riscrivere l'articolo: genera il pezzo mancante e inseriscilo.
+
+- manca "Punti chiave" → 4 bullet, subito dopo il paragrafo di apertura
+- manca "Domande frequenti" → 4 coppie, in fondo all'articolo
+- densità fuori range → aggiusta 2-3 occorrenze, mai keyword stuffing
+- dati verificabili sotto 3 → recupera cifre reali dalla ricerca, non inventarle
+- gerarchia rotta → correggi i livelli degli heading, non i loro testi
+
+## Punteggio finale
+
+```
+punteggioFinale = (punteggioEditoriale × 0,6) + (punteggioGeo × 0,4)
+```
+
+Arrotonda all'intero. Riporta sempre tutti e tre i numeri e i controlli non superati.
+
+## Regole di scrittura che fanno la differenza sul GEO
+
+- Ogni sezione si apre con la conclusione, poi la spiega. Mai costruire suspense.
+- Definisci ogni termine tecnico la prima volta che lo usi, nella stessa frase.
+- Usa cifre concrete con unità di misura, date esplicite e nomi propri completi:
+  i motori generativi citano i passaggi verificabili e ignorano quelli vaghi.
+- Ogni risposta delle FAQ deve reggersi fuori contesto: sono i blocchi che vengono citati.
+- Inserisci almeno una tabella di confronto se l'argomento prevede alternative.
+- Evita "è importante notare che", "nel mondo di oggi", "in conclusione" e ogni riempitivo.
+
+## Metadati — limiti e regole
+
+- `metaTitolo` — massimo 60 caratteri, keyword principale il più a sinistra possibile,
+  nessun clickbait
+- `metaDescrizione` — 150-160 caratteri, contiene la keyword, descrive il beneficio
+  concreto per chi legge e invita all'azione
+- `keywordPrincipale` — la query che l'articolo deve intercettare, come la digiterebbe un utente
+- `keywordSecondarie` — 5-8 keyword realmente coperte dalle sezioni scritte, nessuna inventata
+- `entita` — 5-8 entità nominate concrete citate nell'articolo. Nomi propri, non concetti:
+  servono allo structured data
+- `slug` — minuscolo, senza accenti, parole separate da trattino
+- `ogTitolo` max 60 / `ogDescrizione` max 200 — variante discorsiva per i social
+- `altText` immagine di copertina — massimo 125 caratteri, descrittivo
+
+Se un valore sfora, accorcialo tu prima di consegnare: non consegnare mai metadati fuori limite.
+FINE

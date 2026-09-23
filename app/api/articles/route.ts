@@ -5,11 +5,15 @@ import type { ArticlesResponse } from '@/types/api'
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const stato = searchParams.get('stato') ?? undefined
+  const sessionId = searchParams.get('sessionId') ?? undefined
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
   const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '20'))
   const skip = (page - 1) * limit
 
-  const where = stato ? { stato: stato as any } : {}
+  const where = {
+    ...(stato ? { stato: stato as any } : {}),
+    ...(sessionId ? { sessionId } : {}),
+  }
 
   const [articoli, totale] = await Promise.all([
     prisma.articolo.findMany({
@@ -36,6 +40,7 @@ export async function GET(req: NextRequest) {
   const response: ArticlesResponse = {
     articoli: articoli.map((a: typeof articoli[0]) => ({
       id: a.id,
+      sessionId: a.sessionId,
       titolo: a.titolo,
       slug: a.slug,
       stato: a.stato,
